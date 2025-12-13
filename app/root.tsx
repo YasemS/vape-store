@@ -8,7 +8,12 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import "./app.css";
+
+import "~/app.css";
+
+import Nav from "~/components/Nav";
+import Footer from "~/components/Footer";
+import { DisclaimerAnnouncement } from "~/components/Announcement";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -42,7 +47,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <DisclaimerAnnouncement />
+
+      <Nav />
+
+      <main>
+        <Outlet />
+      </main>
+
+      <Footer />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
