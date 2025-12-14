@@ -15,10 +15,10 @@ export function ProductGrid(props: ProductGridProps) {
 export function ProductCard() {
   return (
     <Link className="flex flex-col group" to="/product/test">
-      <div className="aspect-square bg-zinc-100 p-4">
+      <div className="aspect-square p-4 bg-zinc-100 border border-zinc-100 rounded transition-colors hover:border-zinc-200 active:border-zinc-400">
         <img
           alt=""
-          className="w-full h-full object-contain transition group-hover:-translate-y-1"
+          className="w-full h-full object-contain transition"
           src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
         />
       </div>

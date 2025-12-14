@@ -15,8 +15,13 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Form, Link } from "react-router";
 
+import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
+import Input from "~/components/Input";
+import InputGroup from "~/components/InputGroup";
+import Label from "~/components/Label";
 import { ProductCard, ProductGrid } from "~/components/Product";
+import Select from "~/components/Select";
 
 export default function Product() {
   const [saleTimeRemaining, setSaleTimeRemaining] =
@@ -303,50 +308,30 @@ export default function Product() {
                 className="flex flex-col gap-4 mt-6 pt-6 border-t border-zinc-200"
                 onSubmit={onFormSubmit}
               >
-                <div className="flex flex-col gap-1 max-w-1/2 lg:max-w-1/3 xl:max-w-1/4">
-                  <label
-                    className="text-sm font-medium leading-3.5"
-                    htmlFor="quantity"
-                  >
-                    Quantity
-                  </label>
+                <InputGroup className="max-w-1/2 lg:max-w-1/3 xl:max-w-1/4">
+                  <Label htmlFor="quantity">Quantity</Label>
 
-                  <input
-                    className="h-12 w-full px-3 appearance-none bg-white border border-zinc-200 rounded outline-none transition-all placeholder:text-black/30 hover:border-zinc-400 focus:border-orange-500"
-                    name="quantity"
-                    id="quantity"
-                    type="number"
-                    min={1}
-                  />
-                </div>
+                  <Input name="quantity" id="quantity" type="number" min={1} />
+                </InputGroup>
 
-                <div className="flex flex-col gap-1">
-                  <label
-                    className="text-sm font-medium leading-3.5"
-                    htmlFor="flavour"
-                  >
-                    Flavour
-                  </label>
+                <InputGroup>
+                  <Label htmlFor="flavour">Flavour</Label>
 
-                  <select
-                    className="h-12 w-full px-3 appearance-none bg-white border border-zinc-200 rounded outline-none transition-all placeholder:text-black/30 hover:border-zinc-400 focus:border-orange-500"
-                    name="flavour"
-                    id="flavour"
-                  >
+                  <Select name="flavour" id="flavour">
                     <option disabled value="">
                       Select a flavour
                     </option>
                     <option value="">Blue Razz Ice</option>
-                  </select>
-                </div>
+                  </Select>
+                </InputGroup>
 
-                <button
-                  className="flex flex-col items-center justify-center gap-1 h-12 px-4 bg-orange-500 rounded-full transition text-white cursor-pointer hover:scale-102 active:scale-103"
-                  ref={atcButtonRef}
-                >
-                  <p className="text-lg font-bold leading-4.5">Add to cart</p>
-                  <p className="text-xs leading-3">20% OFF</p>
-                </button>
+                <Button className="flex flex-col gap-1" ref={atcButtonRef}>
+                  <span className="text-lg font-bold leading-4.5">
+                    Add to cart
+                  </span>
+
+                  <span className="text-xs font-normal leading-3">20% OFF</span>
+                </Button>
               </Form>
 
               <div className="mt-6 pt-6 border-t border-zinc-200">
@@ -646,12 +631,12 @@ export default function Product() {
                   <p className="text-lg font-semibold">Added to Cart</p>
                 </div>
 
-                <button
-                  className="flex items-center justify-center w-10 h-10 bg-zinc-100 rounded-full"
+                <IconButton
+                  variant="secondary"
                   onClick={() => setShowCartPopup(false)}
                 >
                   <XIcon className="w-6 h-6" />
-                </button>
+                </IconButton>
               </div>
 
               <div className="flex items-center gap-3 mt-2">
@@ -678,13 +663,9 @@ export default function Product() {
               </div>
 
               <div className="flex flex-col gap-2 mt-4">
-                <button className="flex items-center justify-center px-8 h-12 bg-white border border-zinc-500 rounded-full text-black font-bold">
-                  View Cart (1)
-                </button>
+                <Button variant="outline">View Cart (1)</Button>
 
-                <button className="flex items-center justify-center px-8 h-12 bg-orange-500 rounded-full text-white font-bold">
-                  Checkout
-                </button>
+                <Button>Checkout</Button>
               </div>
             </div>
           </Container>
