@@ -678,12 +678,12 @@ export default function Product() {
               </div>
 
               <div className="flex flex-col gap-2 mt-4">
-                <button className="flex items-center justify-center px-8 h-12 bg-orange-500 rounded-full text-white font-bold">
-                  Checkout
-                </button>
-
                 <button className="flex items-center justify-center px-8 h-12 bg-white border border-zinc-500 rounded-full text-black font-bold">
                   View Cart (1)
+                </button>
+
+                <button className="flex items-center justify-center px-8 h-12 bg-orange-500 rounded-full text-white font-bold">
+                  Checkout
                 </button>
               </div>
             </div>
