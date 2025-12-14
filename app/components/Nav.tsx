@@ -5,9 +5,9 @@ import Container from "~/components/Container";
 
 export default function Nav() {
   return (
-    <div className="bg-white border-b border-zinc-200 px-4 py-6">
-      <Container>
-        <div className="flex items-center justify-between">
+    <div className="relative h-20 px-4 bg-white border-b border-zinc-200 sm:z-50">
+      <Container className="h-full">
+        <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-2 min-w-32 w-32 max-w-32">
             <button
               className="sm:hidden"

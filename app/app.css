@@ -74,3 +74,13 @@ input[type="number"] {
     transform: translateY(0);
   }
 }
+
+@media (width >= 40rem /* 640px */) {
+  .animate-cart-bg {
+    animation: none;
+  }
+
+  .animate-cart-popup {
+    animation: none;
+  }
+}

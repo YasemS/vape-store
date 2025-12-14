@@ -103,6 +103,7 @@ export default function Product() {
   useEffect(() => {
     if (!showCartPopup) return;
 
+    window.scrollTo({ top: 0, behavior: "instant" });
     document.body.style.overflow = "hidden";
 
     return () => {
@@ -632,59 +633,61 @@ export default function Product() {
       )}
 
       {showCartPopup && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black/50 animate-cart-bg z-20">
-          <div
-            className="fixed bottom-0 left-0 w-full p-4 bg-white rounded-t-xl animate-cart-popup"
-            ref={cartPopupRef}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2Icon className="w-8 h-8 text-white fill-green-600" />
+        <div className="fixed top-0 left-0 w-full h-full bg-black/50 animate-cart-bg z-20 sm:px-4">
+          <Container className="relative w-full h-full">
+            <div
+              className="absolute bottom-0 left-0 w-full p-4 bg-white rounded-t-xl animate-cart-popup sm:top-30 sm:bottom-auto sm:left-auto sm:right-0 sm:-translate-y-[px] sm:max-w-md sm:py-5 sm:rounded-t-none sm:rounded-b-xl z-60"
+              ref={cartPopupRef}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2Icon className="w-8 h-8 text-white fill-green-600" />
 
-                <p className="text-lg font-semibold">Added to Cart</p>
+                  <p className="text-lg font-semibold">Added to Cart</p>
+                </div>
+
+                <button
+                  className="flex items-center justify-center w-10 h-10 bg-zinc-100 rounded-full"
+                  onClick={() => setShowCartPopup(false)}
+                >
+                  <XIcon className="w-6 h-6" />
+                </button>
               </div>
 
-              <button
-                className="flex items-center justify-center w-10 h-10 bg-zinc-100 rounded-full"
-                onClick={() => setShowCartPopup(false)}
-              >
-                <XIcon className="w-6 h-6" />
-              </button>
-            </div>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="min-w-20 w-20 h-20 bg-zinc-100 rounded">
+                  <img
+                    className="w-full h-full p-2 object-contain"
+                    src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
+                    alt=""
+                  />
+                </div>
 
-            <div className="flex items-center gap-3 mt-2">
-              <div className="min-w-20 w-20 h-20 bg-zinc-100 rounded">
-                <img
-                  className="w-full h-full p-2 object-contain"
-                  src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                  alt=""
-                />
-              </div>
+                <div className="flex flex-col">
+                  <p className="text-lg font-semibold leading-4.5">
+                    Geek Bar Pulse X
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-500 leading-3.5">
+                    Flavor: Blue Razz Ice
+                  </p>
+                </div>
 
-              <div className="flex flex-col">
-                <p className="text-lg font-semibold leading-4.5">
-                  Geek Bar Pulse X
+                <p className="ml-auto text-red-500 font-semibold leading-4">
+                  $34.99
                 </p>
-                <p className="mt-1 text-sm text-zinc-500 leading-3.5">
-                  Flavor: Blue Razz Ice
-                </p>
               </div>
 
-              <p className="ml-auto text-red-500 font-semibold leading-4">
-                $34.99
-              </p>
-            </div>
+              <div className="flex flex-col gap-2 mt-4">
+                <button className="flex items-center justify-center px-8 h-12 bg-orange-500 rounded-full text-white font-bold">
+                  Checkout
+                </button>
 
-            <div className="flex flex-col gap-2 mt-4">
-              <button className="flex items-center justify-center px-8 h-12 bg-orange-500 rounded-full text-white font-bold">
-                Checkout
-              </button>
-
-              <button className="flex items-center justify-center px-8 h-12 bg-white border border-zinc-500 rounded-full text-black font-bold">
-                View Cart (1)
-              </button>
+                <button className="flex items-center justify-center px-8 h-12 bg-white border border-zinc-500 rounded-full text-black font-bold">
+                  View Cart (1)
+                </button>
+              </div>
             </div>
-          </div>
+          </Container>
         </div>
       )}
     </>
