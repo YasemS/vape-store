@@ -2,7 +2,7 @@ import { ShieldCheckIcon, ChevronRightIcon } from "lucide-react";
 
 export function WhyUsBanner() {
   return (
-    <div className="flex items-center p-2 bg-green-500 text-white text-xs font-semibold sm:hidden">
+    <div className="flex items-center px-3 py-2 bg-green-500 text-white text-xs font-semibold sm:px-4 sm:py-3 sm:text-sm">
       <ShieldCheckIcon className="w-5 h-5 mr-1.5 fill-white stroke-green-500" />
       <p>Safe Payments</p>
       <span className="mx-1">&bull;</span>
@@ -10,7 +10,7 @@ export function WhyUsBanner() {
       <span className="mx-1">&bull;</span>
       <p>Delivery Guarantee</p>
 
-      <ChevronRightIcon className="w-4 h-4 ml-auto" />
+      <ChevronRightIcon className="w-5 h-5 ml-auto" />
     </div>
   );
 }

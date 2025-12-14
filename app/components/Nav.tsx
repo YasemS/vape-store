@@ -5,7 +5,7 @@ import Container from "~/components/Container";
 
 export default function Nav() {
   return (
-    <div className="bg-white border-b border-zinc-200 sticky top-0 z-10 px-4 py-6">
+    <div className="bg-white border-b border-zinc-200 px-4 py-6">
       <Container>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-32 w-32 max-w-32">

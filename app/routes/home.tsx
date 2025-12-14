@@ -11,13 +11,13 @@ import {
 
 function Hero() {
   return (
-    <div className="aspect-4/2 overflow-hidden">
+    <Link className="aspect-2/1 overflow-hidden" to="/products">
       <img
         alt=""
         className="w-full h-full object-cover"
-        src="https://cdn.jannexapic.com/uploads/160695/cart/resources/20251206/49d38c37e6e66649f0532451714a7469.webp"
+        src="/img/geek-bar-pulse-x-banner.jpg"
       />
-    </div>
+    </Link>
   );
 }
 
@@ -81,15 +81,19 @@ function ProductCard() {
 export default function Home() {
   return (
     <>
-      <Container>
-        <WhyUsBanner />
+      <div className="xl:mt-8">
+        <Container>
+          <WhyUsBanner />
 
-        <Hero />
-      </Container>
+          <div className="xl:mt-4">
+            <Hero />
+          </div>
+        </Container>
+      </div>
 
       <div className="mt-8 px-4">
         <Container>
-          <h2 className="text-xl font-bold">🔥 Popular Products</h2>
+          <h2 className="text-xl font-bold sm:text-2xl">🔥 Popular Products</h2>
 
           <div className="mt-2">
             <ProductGrid>

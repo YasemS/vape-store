@@ -7,4 +7,70 @@
 
 html,
 body {
+  scroll-behavior: smooth;
+}
+
+/* Global class for hiding arrows on number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none; /* Chrome, Safari, Edge, Opera */
+  margin: 0; /* Removes the margin that can be left in some cases */
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield; /* Standard property, works in modern browsers */
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.animate-product-bar {
+  animation: product-bar 150ms ease-in-out;
+}
+
+.animate-cart-bg {
+  animation: cart-bg 150ms ease-in-out;
+}
+
+.animate-cart-popup {
+  animation: cart-popup 150ms ease-in-out;
+}
+
+@keyframes product-bar {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cart-bg {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cart-popup {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
