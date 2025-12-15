@@ -66,7 +66,7 @@ export default function Checkout() {
   const [state, setState] = useState("");
   const [postal, setPostal] = useState("");
 
-  const [shippingId, setShippingId] = useState<string>(shippingOptions[0].id);
+  const [shippingId, setShippingId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("");
 
   const [isAddressManual, setIsAddressManual] = useState(false);
@@ -513,8 +513,8 @@ export default function Checkout() {
               </div>
             </div>
 
-            <div className="sticky top-4">
-              <div className="mt-4 border border-zinc-200 rounded-lg">
+            <div className="sticky top-4 mt-2">
+              <div className="border border-zinc-200 rounded-lg">
                 <div className="flex p-4">
                   <h2 className="text-xl font-semibold leading-5">
                     Order Summary
