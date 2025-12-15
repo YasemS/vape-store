@@ -64,14 +64,14 @@ export default function Footer() {
           </p>
 
           <div className="flex items-center gap-1 mt-2">
-            <img alt="American Express" className="h-6" src="/img/amex.svg" />
+            {/* <img alt="American Express" className="h-6" src="/img/amex.svg" /> */}
             <img alt="Diners Club" className="h-6" src="/img/diners.svg" />
             <img alt="Discover" className="h-6" src="/img/discover.svg" />
             <img alt="Mastercard" className="h-6" src="/img/mastercard.svg" />
             <img alt="Visa" className="h-6" src="/img/visa.svg" />
-            <img alt="Cash App" className="h-6" src="/img/cash-app.svg" />
+            {/* <img alt="Cash App" className="h-6" src="/img/cash-app.svg" />
             <img alt="Venmo" className="h-2 mx-0.5" src="/img/venmo.svg" />
-            <img alt="Zelle" className="h-6" src="/img/zelle.svg" />
+            <img alt="Zelle" className="h-6" src="/img/zelle.svg" /> */}
           </div>
         </div>
 

@@ -662,7 +662,9 @@ export default function Product() {
                   </Button>
                 </Link>
 
-                <Button>Checkout</Button>
+                <Link tabIndex={-1} to="/checkout">
+                  <Button className="w-full">Checkout</Button>
+                </Link>
               </div>
             </div>
           </Container>

@@ -29,7 +29,7 @@ export default function Select({
     <div className="relative">
       <select
         className={cn(
-          "h-12 w-full px-3 pr-10 appearance-none bg-white border border-zinc-200 rounded outline-none transition-all placeholder:text-black/30 hover:border-zinc-400 focus:border-orange-500",
+          "h-10 w-full px-3 pr-10 appearance-none bg-white border border-zinc-200 ring-3 ring-transparent rounded outline-none transition-all text-sm placeholder:text-black/30 hover:border-zinc-400 focus:border-orange-500 focus:ring-orange-500/25",
           className
         )}
         onFocus={onSelectFocus}
@@ -39,7 +39,7 @@ export default function Select({
 
       <ChevronDown
         className={cn(
-          "absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-transform",
+          "absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-transform",
           focused && "rotate-180"
         )}
       />

@@ -225,11 +225,6 @@ export default function Cart() {
 
               <div className="flex items-center justify-center gap-0.5 mt-2">
                 <img
-                  alt="American Express"
-                  className="h-6 rounded-xs"
-                  src="/img/amex.svg"
-                />
-                <img
                   alt="Diners Club"
                   className="h-6 rounded-xs"
                   src="/img/diners.svg"
