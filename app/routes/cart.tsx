@@ -6,6 +6,7 @@ import {
   TruckIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
@@ -218,7 +219,9 @@ export default function Cart() {
             </div>
 
             <div className="mt-2">
-              <Button className="w-full">Checkout (1)</Button>
+              <Link to="/checkout">
+                <Button className="w-full">Checkout (1)</Button>
+              </Link>
 
               <div className="flex items-center justify-center gap-0.5 mt-2">
                 <img
