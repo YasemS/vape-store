@@ -1,4 +1,11 @@
-import { CreditCardIcon, LockIcon, SearchIcon } from "lucide-react";
+import {
+  CreditCardIcon,
+  LockIcon,
+  PackageOpenIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  TruckIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import Button from "~/components/Button";
@@ -9,9 +16,18 @@ import Input, { type InputProps } from "~/components/Input";
 import InputGroup from "~/components/InputGroup";
 import Label from "~/components/Label";
 import Select from "~/components/Select";
+import {
+  PaymentMethodContainer,
+  PaymentMethodButton,
+  PaymentMethodContent,
+  PaymentMethodIcons,
+  PaymentMethodIcon,
+} from "~/components/Checkout";
 
 import cn from "~/lib/cn";
 import format from "~/lib/format";
+import { ClientOnly } from "remix-utils/client-only";
+import QRCode from "react-qr-code";
 
 type ShippingOption = {
   id: string;
@@ -51,18 +67,15 @@ export default function Checkout() {
   const [postal, setPostal] = useState("");
 
   const [shippingId, setShippingId] = useState<string>(shippingOptions[0].id);
+  const [paymentMethod, setPaymentMethod] = useState("");
 
   const [isAddressManual, setIsAddressManual] = useState(false);
 
   return (
     <div className="px-4 pt-8">
-      <Container>
+      <Container className="max-w-[1024px]">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           <div className="md:col-span-3">
-            {/* <h1 className="text-2xl font-bold">Checkout</h1>
-            
-                    <hr className="my-8 border-zinc-100" /> */}
-
             <div>
               <h2 className="text-xl font-semibold">Contact</h2>
 
@@ -304,17 +317,170 @@ export default function Checkout() {
               <h2 className="text-xl font-semibold">Payment</h2>
 
               <div className="flex flex-col gap-2 mt-4">
-                <CardPaymentMethod />
+                <CardPaymentMethod
+                  active={paymentMethod === "credit-card"}
+                  onSelect={() => setPaymentMethod("credit-card")}
+                >
+                  <PaymentMethodContent>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:gap-2">
+                      <InputGroup>
+                        <Label htmlFor="card-number">Card Number</Label>
 
-                <CashAppMethod />
+                        <Input
+                          autoComplete="cc-number"
+                          id="card-number"
+                          type="text"
+                        />
+                      </InputGroup>
 
-                <ZellePaymentMethod />
+                      <div className="flex gap-2 w-full">
+                        <InputGroup>
+                          <Label htmlFor="card-expiration">Expiry</Label>
+
+                          <Input
+                            autoComplete="cc-exp"
+                            id="card-expiration"
+                            type="text"
+                            placeholder="MM / YY"
+                          />
+                        </InputGroup>
+
+                        <InputGroup>
+                          <Label htmlFor="card-cvc">Security Code</Label>
+
+                          <Input
+                            autoComplete="cc-csc"
+                            id="card-cvc"
+                            type="text"
+                          />
+                        </InputGroup>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 sm:flex-row sm:gap-2">
+                      <InputGroup>
+                        <Label htmlFor="card-name">Name on Card</Label>
+
+                        <Input
+                          autoComplete="cc-name"
+                          id="card-name"
+                          type="text"
+                        />
+                      </InputGroup>
+
+                      <InputGroup>
+                        <Label htmlFor="card-postal">Billing Zip</Label>
+
+                        <Input
+                          autoComplete="billing postal-code"
+                          id="card-postal"
+                          type="text"
+                        />
+                      </InputGroup>
+                    </div>
+                  </PaymentMethodContent>
+                </CardPaymentMethod>
+
+                <ZellePaymentMethod
+                  active={paymentMethod === "zelle"}
+                  onSelect={() => setPaymentMethod("zelle")}
+                >
+                  <PaymentMethodContent className="items-center justify-center text-center">
+                    <p className="text-sm">
+                      Pay by sending <strong>$8.39</strong> to the Zelle QR or
+                      number below
+                    </p>
+
+                    <ClientOnly>
+                      {() => (
+                        <QRCode
+                          className="w-40 h-40"
+                          value="https://example.com"
+                        />
+                      )}
+                    </ClientOnly>
+
+                    <p className="text-xl font-bold leading-5">
+                      +1 (786) 566-3330
+                    </p>
+
+                    <p className="-mt-2 text-xs">
+                      Please send the payment via Zelle, then click complete
+                      checkout.
+                    </p>
+                  </PaymentMethodContent>
+                </ZellePaymentMethod>
+              </div>
+            </div>
+
+            <div className="hidden grid-cols-4 mt-4 md:grid">
+              <div className="flex flex-col items-center justify-center text-center">
+                <ShieldCheckIcon className="w-8 h-8 text-green-600" />
+
+                <p className="mt-1 text-xs text-zinc-500 leading-3.5">
+                  Secure Checkout
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center justify-center text-center">
+                <CreditCardIcon className="w-8 h-8 text-green-600" />
+
+                <p className="mt-1 text-xs text-zinc-500 leading-3.5">
+                  Safe Payment Methods
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center justify-center text-center">
+                <PackageOpenIcon className="w-8 h-8 text-green-600" />
+
+                <p className="mt-1 text-xs text-zinc-500 leading-3.5">
+                  Free 14 Days Returns
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center justify-center text-center">
+                <TruckIcon className="w-8 h-8 text-green-600" />
+
+                <p className="mt-1 text-xs text-zinc-500 leading-3.5">
+                  Delivery Guarantee
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="pt-8 border-t border-zinc-200 md:col-span-2 md:pt-0 md:border-t-0">
             <div className="flex flex-col border border-zinc-200 rounded-lg">
+              <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
+                <div className="min-w-16 w-16 h-16 p-2 bg-zinc-100 rounded">
+                  <img
+                    className="w-full h-full object-contain"
+                    src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
+                  />
+                </div>
+
+                <div className="flex flex-col w-full">
+                  <div className="flex items-start justify-between gap-4 w-full">
+                    <p className="font-semibold leading-4">Geek Bar Pulse X</p>
+                  </div>
+
+                  <p className="mt-0.5 text-zinc-500 text-xs leading-3.5">
+                    <strong>Flavour:</strong> Blue Razz Ice
+                  </p>
+
+                  <div className="flex items-end justify-between gap-4 mt-auto">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm text-red-500 font-semibold leading-3.5">
+                        $34.99
+                      </p>
+
+                      <p className="text-xs text-zinc-500 font-medium line-through">
+                        $49.99
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
                 <div className="min-w-16 w-16 h-16 p-2 bg-zinc-100 rounded">
                   <img
@@ -347,68 +513,70 @@ export default function Checkout() {
               </div>
             </div>
 
-            <div className="mt-4 border border-zinc-200 rounded-lg">
-              <div className="flex p-4">
-                <h2 className="text-xl font-semibold leading-5">
-                  Order Summary
-                </h2>
+            <div className="sticky top-4">
+              <div className="mt-4 border border-zinc-200 rounded-lg">
+                <div className="flex p-4">
+                  <h2 className="text-xl font-semibold leading-5">
+                    Order Summary
+                  </h2>
+                </div>
+
+                <div className="flex flex-col p-4 border-t border-zinc-200">
+                  <div className="flex items-center justify-between">
+                    <p>Subtotal</p>
+                    <p>$34.99</p>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <p>Discounts</p>
+                    <p className="text-red-600 font-medium">$15.00</p>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <p>Shipping</p>
+                    <p className="text-zinc-500 italic">Next Step</p>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200 text-lg font-bold">
+                    <p>Total</p>
+                    <p>$15.00</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col p-4 border-t border-zinc-200">
-                <div className="flex items-center justify-between">
-                  <p>Subtotal</p>
-                  <p>$34.99</p>
+              <div className="mt-2">
+                <Button className="w-full">Complete Checkout</Button>
+
+                <p className="mt-2 text-xs text-zinc-500 text-center leading-3.5">
+                  By making a purchase, you agree to our{" "}
+                  <Link className="underline" to="/legal/terms">
+                    terms of service
+                  </Link>
+                  .
+                </p>
+
+                <div className="flex items-center justify-center gap-0.5 mt-2">
+                  <img
+                    alt="Diners Club"
+                    className="h-6 rounded-xs"
+                    src="/img/diners.svg"
+                  />
+                  <img
+                    alt="Discover"
+                    className="h-6 rounded-xs"
+                    src="/img/discover.svg"
+                  />
+                  <img
+                    alt="Mastercard"
+                    className="h-6 rounded-xs"
+                    src="/img/mastercard.svg"
+                  />
+                  <img
+                    alt="Visa"
+                    className="h-6 rounded-xs"
+                    src="/img/visa.svg"
+                  />
                 </div>
-
-                <div className="flex items-center justify-between mt-2">
-                  <p>Discounts</p>
-                  <p className="text-red-600 font-medium">$15.00</p>
-                </div>
-
-                <div className="flex items-center justify-between mt-2">
-                  <p>Shipping</p>
-                  <p className="text-zinc-500 italic">Next Step</p>
-                </div>
-
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200 text-lg font-bold">
-                  <p>Total</p>
-                  <p>$15.00</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-2">
-              <Button className="w-full">Complete Checkout</Button>
-
-              <p className="mt-2 text-xs text-zinc-500 text-center leading-3.5">
-                By making a purchase, you agree to our{" "}
-                <Link className="underline" to="/legal/terms">
-                  terms of service
-                </Link>
-                .
-              </p>
-
-              <div className="flex items-center justify-center gap-0.5 mt-2">
-                <img
-                  alt="Diners Club"
-                  className="h-6 rounded-xs"
-                  src="/img/diners.svg"
-                />
-                <img
-                  alt="Discover"
-                  className="h-6 rounded-xs"
-                  src="/img/discover.svg"
-                />
-                <img
-                  alt="Mastercard"
-                  className="h-6 rounded-xs"
-                  src="/img/mastercard.svg"
-                />
-                <img
-                  alt="Visa"
-                  className="h-6 rounded-xs"
-                  src="/img/visa.svg"
-                />
               </div>
             </div>
           </div>
@@ -418,207 +586,38 @@ export default function Checkout() {
   );
 }
 
-type PaymentMethodProps = React.ComponentProps<"div"> & {
+type RadioProps = {
   active?: boolean;
 };
-type PaymentMethodButtonProps = React.ComponentProps<"button">;
-type PaymentMethodContentProps = React.ComponentProps<"div">;
-
-function PaymentMethod({ active, children, ...props }: PaymentMethodProps) {
-  return (
-    <div
-      className={cn(
-        "border border-zinc-200 rounded ring-3 ring-transparent transition-colors",
-        active && "border-orange-500 ring-orange-500/25"
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
-
-function PaymentMethodButton({ children, ...props }: PaymentMethodButtonProps) {
-  return (
-    <button className="flex items-center gap-3 w-full p-4" {...props}>
-      {children}
-    </button>
-  );
-}
-
-function PaymentMethodContent({
-  children,
-  ...props
-}: PaymentMethodContentProps) {
-  return (
-    <div className="p-4 pt-0" {...props}>
-      {children}
-    </div>
-  );
-}
-
-type CardPaymentMethodProps = {
-  active?: boolean;
-};
-
-function CardPaymentMethod({ active }: CardPaymentMethodProps) {
-  return (
-    <PaymentMethod active={active}>
-      <PaymentMethodButton>
-        <div
-          className={cn(
-            "flex items-center justify-center w-5 h-5 border border-zinc-200 rounded-full transition-colors",
-            active ? "border-orange-500" : "group-hover:border-zinc-400"
-          )}
-        >
-          <div
-            className={cn(
-              "w-3 h-3 bg-transparent rounded-full transition-colors",
-              active && "bg-orange-500"
-            )}
-          ></div>
-        </div>
-
-        <p className="font-semibold">Credit Card</p>
-
-        {/* <CreditCardIcon className="w-5 h-5 ml-auto" /> */}
-
-        <div className="flex gap-0.5 ml-auto">
-          <img alt="Visa" className="h-6 rounded-xs" src="/img/visa.svg" />
-          <img
-            alt="Mastercard"
-            className="h-6 rounded-xs"
-            src="/img/mastercard.svg"
-          />
-          <p className="ml-1 text-xs text-zinc-500 font-medium leading-3">
-            + 2 <br />
-            More
-          </p>
-        </div>
-      </PaymentMethodButton>
-
-      {/* <PaymentMethodContent>
-        <div className="flex flex-col gap-4">
-          <InputGroup>
-            <Label htmlFor="card-number">Card Number</Label>
-
-            <Input autoComplete="cc-number" id="card-number" type="text" />
-          </InputGroup>
-
-          <div className="flex gap-2">
-            <InputGroup>
-              <Label htmlFor="card-expiration">Expiry</Label>
-
-              <Input
-                autoComplete="cc-exp"
-                id="card-expiration"
-                type="text"
-                placeholder="MM / YY"
-              />
-            </InputGroup>
-
-            <InputGroup>
-              <Label htmlFor="card-cvc">Security Code</Label>
-
-              <Input autoComplete="cc-csc" id="card-cvc" type="text" />
-            </InputGroup>
-          </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-2">
-            <InputGroup>
-              <Label htmlFor="card-name">Card Holder</Label>
-
-              <Input autoComplete="cc-name" id="card-name" type="text" />
-            </InputGroup>
-
-            <InputGroup>
-              <Label htmlFor="card-postal">Billing Zip</Label>
-
-              <Input
-                autoComplete="billing postal-code"
-                id="card-postal"
-                type="text"
-              />
-            </InputGroup>
-          </div>
-        </div>
-      </PaymentMethodContent> */}
-    </PaymentMethod>
-  );
-}
-
-function CashAppMethod({ active }: CardPaymentMethodProps) {
-  return (
-    <PaymentMethod active={active}>
-      <PaymentMethodButton>
-        <div
-          className={cn(
-            "flex items-center justify-center w-5 h-5 border border-zinc-200 rounded-full transition-colors",
-            active ? "border-orange-500" : "group-hover:border-zinc-400"
-          )}
-        >
-          <div
-            className={cn(
-              "w-3 h-3 bg-transparent rounded-full transition-colors",
-              active && "bg-orange-500"
-            )}
-          ></div>
-        </div>
-
-        <p className="font-semibold">Cash App</p>
-
-        {/* <CreditCardIcon className="w-5 h-5 ml-auto" /> */}
-
-        <div className="flex gap-0.5 ml-auto">
-          <img alt="Visa" className="h-6 rounded-xs" src="/img/cash-app.svg" />
-        </div>
-      </PaymentMethodButton>
-
-      {/* <PaymentMethodContent>
-        <p>Your payment will be processed through Zelle</p>
-      </PaymentMethodContent> */}
-    </PaymentMethod>
-  );
-}
-
-function ZellePaymentMethod({ active }: CardPaymentMethodProps) {
-  return (
-    <PaymentMethod active={active}>
-      <PaymentMethodButton>
-        <div
-          className={cn(
-            "flex items-center justify-center w-5 h-5 border border-zinc-200 rounded-full transition-colors",
-            active ? "border-orange-500" : "group-hover:border-zinc-400"
-          )}
-        >
-          <div
-            className={cn(
-              "w-3 h-3 bg-transparent rounded-full transition-colors",
-              active && "bg-orange-500"
-            )}
-          ></div>
-        </div>
-
-        <p className="font-semibold">Zelle</p>
-
-        {/* <CreditCardIcon className="w-5 h-5 ml-auto" /> */}
-
-        <div className="flex gap-0.5 ml-auto">
-          <img alt="Visa" className="h-6 rounded-xs" src="/img/zelle.svg" />
-        </div>
-      </PaymentMethodButton>
-
-      {/* <PaymentMethodContent>
-        <p>Your payment will be processed through Zelle</p>
-      </PaymentMethodContent> */}
-    </PaymentMethod>
-  );
-}
 
 type ShippingMethodProps = React.ComponentProps<"button"> & {
   active?: boolean;
   option: ShippingOption;
 };
+
+type PaymentMethodProps = {
+  active?: boolean;
+  onSelect?: () => void;
+  children: React.ReactNode;
+};
+
+function Radio({ active }: RadioProps) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center w-5 h-5 border border-zinc-200 rounded-full transition-colors",
+        active ? "border-black" : "group-hover:border-zinc-400"
+      )}
+    >
+      <div
+        className={cn(
+          "w-3 h-3 bg-transparent rounded-full transition-colors",
+          active && "bg-black"
+        )}
+      ></div>
+    </div>
+  );
+}
 
 function AddressAutocompleteInput(props: InputProps) {
   return (
@@ -669,23 +668,21 @@ function ShippingMethod({ active, option, ...props }: ShippingMethodProps) {
   return (
     <button
       className={cn(
-        "flex gap-3 group p-4 border border-zinc-200 rounded ring-3 ring-transparent outline-none transition-colors text-left cursor-pointer",
-        active
-          ? "border-orange-500 ring-orange-500/25"
-          : "hover:border-zinc-400"
+        "flex gap-3 group p-4 border border-zinc-200 rounded ring-1 ring-transparent outline-none transition-colors text-left cursor-pointer",
+        active ? "border-black ring-black" : "hover:border-zinc-400"
       )}
       {...props}
     >
       <div
         className={cn(
           "flex items-center justify-center w-5 h-5 border border-zinc-200 rounded-full transition-colors",
-          active ? "border-orange-500" : "group-hover:border-zinc-400"
+          active ? "border-black" : "group-hover:border-zinc-400"
         )}
       >
         <div
           className={cn(
             "w-3 h-3 bg-transparent rounded-full transition-colors",
-            active && "bg-orange-500"
+            active && "bg-black"
           )}
         ></div>
       </div>
@@ -702,5 +699,50 @@ function ShippingMethod({ active, option, ...props }: ShippingMethodProps) {
         {format.currency(option.price)}
       </p>
     </button>
+  );
+}
+
+function CardPaymentMethod({ children, active, onSelect }: PaymentMethodProps) {
+  return (
+    <PaymentMethodContainer active={active}>
+      <PaymentMethodButton onClick={() => onSelect && onSelect()}>
+        <Radio active={active} />
+
+        <p className="font-semibold">Credit Card</p>
+
+        <PaymentMethodIcons>
+          <PaymentMethodIcon alt="Visa" src="/img/visa.svg" />
+          <PaymentMethodIcon alt="Mastercard" src="/img/mastercard.svg" />
+          <p className="ml-1 text-xs text-zinc-500 font-medium leading-3">
+            + 2 <br />
+            More
+          </p>
+        </PaymentMethodIcons>
+      </PaymentMethodButton>
+
+      {active && children}
+    </PaymentMethodContainer>
+  );
+}
+
+function ZellePaymentMethod({
+  children,
+  active,
+  onSelect,
+}: PaymentMethodProps) {
+  return (
+    <PaymentMethodContainer active={active}>
+      <PaymentMethodButton onClick={() => onSelect && onSelect()}>
+        <Radio active={active} />
+
+        <p className="font-semibold">Zelle</p>
+
+        <PaymentMethodIcons>
+          <PaymentMethodIcon alt="Zelle" src="/img/zelle.svg" />
+        </PaymentMethodIcons>
+      </PaymentMethodButton>
+
+      {active && children}
+    </PaymentMethodContainer>
   );
 }
