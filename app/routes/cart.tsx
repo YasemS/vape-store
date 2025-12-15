@@ -5,17 +5,48 @@ import {
   TrashIcon,
   TruckIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { IconButton } from "~/components/Button";
+import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
 import Input from "~/components/Input";
+
+function CartReservedBanner() {
+  const [time, setTime] = useState(60 * 5);
+
+  function getTimeString() {
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  }
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime((prevTime) => {
+        if (prevTime === 0) {
+          return 60 * 5;
+        }
+
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center mt-4 px-4 py-3 bg-zinc-900 rounded text-white text-sm text-center font-semibold">
+      <p>Cart reserved for {getTimeString()}</p>
+    </div>
+  );
+}
 
 export default function Cart() {
   return (
     <div className="px-4 pt-8">
       <Container>
         <div className="flex items-center justify-center text-center md:justify-start md:text-left">
-          <h1 className="text-lg font-bold">Cart (1)</h1>
+          <h1 className="text-2xl font-bold">Cart (1)</h1>
         </div>
 
         <div className="grid grid-cols-1 gap-8 mt-4 md:grid-cols-5">
@@ -29,6 +60,8 @@ export default function Cart() {
                 🚚 You're only $25 away from Free Shipping!
               </p>
             </div>
+
+            <CartReservedBanner />
 
             <div className="flex flex-col mt-4 border border-zinc-200 rounded-lg">
               <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
@@ -153,8 +186,68 @@ export default function Cart() {
             </div>
           </div>
 
-          <div>
-            <h2 className="text-lg font-semibold leading-4.5">Order Summary</h2>
+          <div className="md:col-span-2">
+            <div className="border border-zinc-200 rounded-lg">
+              <div className="flex p-4">
+                <h2 className="text-xl font-semibold leading-5">
+                  Order Summary
+                </h2>
+              </div>
+
+              <div className="flex flex-col p-4 border-t border-zinc-200">
+                <div className="flex items-center justify-between">
+                  <p>Subtotal</p>
+                  <p>$34.99</p>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  <p>Discounts</p>
+                  <p className="text-red-600 font-medium">$15.00</p>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  <p>Shipping</p>
+                  <p className="text-zinc-500 italic">Next Step</p>
+                </div>
+
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200 text-lg font-bold">
+                  <p>Total</p>
+                  <p>$15.00</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2">
+              <Button className="w-full">Checkout (1)</Button>
+
+              <div className="flex items-center justify-center gap-0.5 mt-2">
+                <img
+                  alt="American Express"
+                  className="h-6 rounded-xs"
+                  src="/img/amex.svg"
+                />
+                <img
+                  alt="Diners Club"
+                  className="h-6 rounded-xs"
+                  src="/img/diners.svg"
+                />
+                <img
+                  alt="Discover"
+                  className="h-6 rounded-xs"
+                  src="/img/discover.svg"
+                />
+                <img
+                  alt="Mastercard"
+                  className="h-6 rounded-xs"
+                  src="/img/mastercard.svg"
+                />
+                <img
+                  alt="Visa"
+                  className="h-6 rounded-xs"
+                  src="/img/visa.svg"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </Container>
