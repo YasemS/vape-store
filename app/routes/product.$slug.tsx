@@ -106,17 +106,6 @@ export default function Product() {
   }, [atcButtonRef]);
 
   useEffect(() => {
-    if (!showCartPopup) return;
-
-    window.scrollTo({ top: 0, behavior: "instant" });
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [showCartPopup]);
-
-  useEffect(() => {
     if (!cartPopupRef.current || !showCartPopup) return;
 
     function onClickOutside(e: MouseEvent) {
@@ -125,9 +114,13 @@ export default function Product() {
       }
     }
 
+    window.scrollTo({ top: 0, behavior: "instant" });
+
+    document.body.style.overflow = "hidden";
     document.addEventListener("click", onClickOutside);
 
     return () => {
+      document.body.style.overflow = "auto";
       document.removeEventListener("click", onClickOutside);
     };
   }, [cartPopupRef, showCartPopup]);
@@ -663,7 +656,11 @@ export default function Product() {
               </div>
 
               <div className="flex flex-col gap-2 mt-4">
-                <Button variant="outline">View Cart (1)</Button>
+                <Link tabIndex={-1} to="/cart">
+                  <Button className="w-full" variant="outline">
+                    View Cart (1)
+                  </Button>
+                </Link>
 
                 <Button>Checkout</Button>
               </div>
