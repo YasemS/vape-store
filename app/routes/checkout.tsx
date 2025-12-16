@@ -73,7 +73,7 @@ export default function Checkout() {
 
   return (
     <div className="px-4 pt-8">
-      <Container className="max-w-[1024px]">
+      <Container className="">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           <div className="md:col-span-3">
             <div>

@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Brand {
+  id   String @id @default(uuid())
+  slug String @unique
+  name String
+
+  products Product[]
+}
+
+model Product {
+  id   String @id @default(uuid())
+  slug String @unique
+  name String
+  price Float
+  rating Float
+  reviewsCount Int
+
+  images ProductImage[]
+  reviews ProductReview[]
+  variants ProductVariant[]
+  specifications ProductSpecification[]
+
+  brand     Brand @relation(fields: [brandSlug], references: [slug])
+  brandSlug String
+
+  created DateTime @default(now())
+  updated DateTime @updatedAt
+}
+
+model ProductImage {
+  id String @id @default(uuid())
+  url String
+
+  product Product @relation(fields: [productId], references: [id])
+  productId String
+}
+
+model ProductReview {
+  id String @id @default(uuid())
+
+  author String
+  content String
+  rating Int
+
+  product Product @relation(fields: [productId], references: [id])
+  productId String
+
+  created DateTime @default(now())
+}
+
+model ProductVariant {
+  id        String @id @default(uuid())
+  name      String
+  options   ProductVariantOption[]
+
+  product     Product @relation(fields: [productSlug], references: [slug])
+  productSlug String
+}
+
+model ProductVariantOption {
+  id        String @id @default(uuid())
+  name      String
+  value     String
+  
+  imageId   String?
+
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  variantId String
+}
+
+model ProductSpecification {
+  id String @id @default(uuid())
+
+  name String
+  value String
+
+  product Product @relation(fields: [productId], references: [id])
+  productId String
+}
