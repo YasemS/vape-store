@@ -11,6 +11,8 @@ import {
 import { getProducts } from "~/lib/products.server";
 import { ProductCard, ProductGrid } from "~/components/Product";
 
+import type { Route } from "./+types/home";
+
 export async function loader() {
   const products = await getProducts({ take: 8 });
 
@@ -31,8 +33,8 @@ function Hero() {
   );
 }
 
-export default function Home() {
-  const { products } = useLoaderData<typeof loader>();
+export default function Home({ loaderData }: Route.ComponentProps) {
+  const { products } = loaderData;
 
   return (
     <>

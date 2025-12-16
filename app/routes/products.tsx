@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { useLoaderData } from "react-router";
 import { ChevronDownIcon } from "lucide-react";
 
+import Button from "~/components/Button";
 import Container from "~/components/Container";
+import Dropdown from "~/components/Dropdown";
 import { ProductCard, ProductGrid } from "~/components/Product";
 
 import cn from "~/lib/cn";
 import { getProducts } from "~/lib/products.server";
-import Button from "~/components/Button";
-import Dropdown from "~/components/Dropdown";
+
+import type { Route } from "./+types/products";
 
 export async function loader() {
   const products = await getProducts();
@@ -16,8 +18,8 @@ export async function loader() {
   return { products };
 }
 
-export default function Products() {
-  const { products } = useLoaderData<typeof loader>();
+export default function Products({ loaderData }: Route.ComponentProps) {
+  const { products } = loaderData;
 
   const [sortBy, setSortBy] = useState("best_selling");
   const [showSortOptions, setShowSortOptions] = useState(false);
@@ -46,7 +48,9 @@ export default function Products() {
     <div className="px-4 pt-8">
       <Container>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">All Products (400)</h1>
+          <h1 className="text-2xl font-bold">
+            All Products ({products.length})
+          </h1>
 
           <div className="relative" ref={sortRef}>
             <Button
