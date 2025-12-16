@@ -6,8 +6,13 @@ import {
   ShieldCheckIcon,
   TruckIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
+import {
+  usePlacesWidget,
+  type ReactGoogleAutocompleteProps,
+} from "react-google-autocomplete";
+
 import Button from "~/components/Button";
 import Checkbox from "~/components/Checkbox";
 
@@ -55,6 +60,8 @@ export default function Checkout() {
     },
   ];
 
+  const address2Ref = useRef<HTMLInputElement>(null);
+
   const [email, setEmail] = useState("");
   const [subscribe, setSubscribe] = useState(true);
   const [firstName, setFirstName] = useState("");
@@ -70,6 +77,69 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("");
 
   const [isAddressManual, setIsAddressManual] = useState(false);
+  const [showAddressFull, setShowAddressFull] = useState(false);
+
+  function onPlaceSelected(place: any) {
+    if (!place || !place.address_components) {
+      return;
+    }
+
+    const components = place.address_components;
+
+    if (!components || !Array.isArray(components)) {
+      return;
+    }
+
+    const data = {
+      address: "",
+      address2: "",
+      country: "",
+      state: "",
+      city: "",
+      postal: "",
+    };
+
+    for (const component of components) {
+      if (component.types.includes("street_number")) {
+        data.address += component.long_name + " ";
+      }
+
+      if (component.types.includes("route")) {
+        data.address += component.long_name;
+      }
+
+      if (
+        component.types.includes("locality") ||
+        component.types.includes("postal_town")
+      ) {
+        data.city = component.long_name;
+      }
+
+      if (component.types.includes("administrative_area_level_1")) {
+        data.state = component.short_name;
+      }
+
+      if (component.types.includes("country")) {
+        data.country = component.short_name;
+      }
+
+      if (component.types.includes("postal_code")) {
+        data.postal = component.long_name;
+      }
+    }
+
+    setAddress(data.address);
+    setCity(data.city);
+    setState(data.state);
+    setCountry(data.country);
+    setPostal(data.postal);
+
+    setShowAddressFull(true);
+
+    setTimeout(() => {
+      address2Ref.current && address2Ref.current.focus();
+    }, 100);
+  }
 
   return (
     <div className="px-4 pt-8">
@@ -172,10 +242,11 @@ export default function Checkout() {
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
+                      onPlaceSelected={onPlaceSelected}
                     />
                   )}
 
-                  {!isAddressManual && (
+                  {!isAddressManual && !showAddressFull && (
                     <button
                       className="mt-0.5 text-left text-xs underline decoration-dotted cursor-pointer"
                       onClick={() => setIsAddressManual(true)}
@@ -185,7 +256,7 @@ export default function Checkout() {
                   )}
                 </InputGroup>
 
-                {isAddressManual && (
+                {(isAddressManual || showAddressFull) && (
                   <>
                     <InputGroup>
                       <Label htmlFor="address-2">Address Line 2</Label>
@@ -194,6 +265,7 @@ export default function Checkout() {
                         autoComplete="address-line2"
                         id="address-2"
                         placeholder="Apt / Suite / Unit"
+                        ref={address2Ref}
                         type="text"
                         value={address2}
                         onChange={(e) => setAddress2(e.target.value)}
@@ -619,10 +691,28 @@ function Radio({ active }: RadioProps) {
   );
 }
 
-function AddressAutocompleteInput(props: InputProps) {
+type AddressAutocompleteInputProps = {
+  onPlaceSelected: ReactGoogleAutocompleteProps["onPlaceSelected"];
+} & InputProps;
+
+function AddressAutocompleteInput({
+  onPlaceSelected,
+  ...props
+}: AddressAutocompleteInputProps) {
+  const { ref: addressRef } = usePlacesWidget<HTMLInputElement>({
+    apiKey: "AIzaSyCAKJnuSa3PDUxJtb1qsoHH4zy7vUOGsCM",
+    onPlaceSelected,
+    options: {
+      types: ["address"],
+      componentRestrictions: {
+        country: "us",
+      },
+    },
+  });
+
   return (
     <div className="relative w-full">
-      <Input className="pr-8" {...props} />
+      <Input className="pr-8" {...props} ref={addressRef} />
 
       <SearchIcon className="absolute top-1/2 right-3 -translate-y-1/2 w-4 h-4" />
     </div>
