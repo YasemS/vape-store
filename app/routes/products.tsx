@@ -8,6 +8,7 @@ import { ProductCard, ProductGrid } from "~/components/Product";
 import cn from "~/lib/cn";
 import { getProducts } from "~/lib/products.server";
 import Button from "~/components/Button";
+import Dropdown from "~/components/Dropdown";
 
 export async function loader() {
   const products = await getProducts();
@@ -66,7 +67,7 @@ export default function Products() {
             </Button>
 
             {showSortOptions && (
-              <div className="flex flex-col items-start absolute top-full right-0 translate-y-1 min-w-48 px-4 py-3 bg-white border border-zinc-200 rounded-lg animate-dropdown">
+              <Dropdown position="right">
                 <button className="text-left font-semibold underline">
                   Best Selling
                 </button>
@@ -74,7 +75,7 @@ export default function Products() {
                 <button className="transition text-left underline decoration-transparent cursor-pointer hover:decoration-black">
                   Name: A-Z
                 </button>
-              </div>
+              </Dropdown>
             )}
           </div>
         </div>
