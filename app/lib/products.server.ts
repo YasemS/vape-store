@@ -61,3 +61,42 @@ export async function getSimilarProducts(productId: string) {
 
   return products;
 }
+
+export async function getProductBySlug(productSlug: string) {
+  const product = await prisma.product.findUnique({
+    where: {
+      slug: productSlug,
+    },
+    include: {
+      brand: {
+        select: {
+          name: true,
+        },
+      },
+      images: {
+        select: {
+          id: true,
+          url: true,
+        },
+        orderBy: {
+          url: "asc",
+        },
+      },
+      variants: {
+        select: {
+          id: true,
+          name: true,
+          options: {
+            select: {
+              id: true,
+              name: true,
+              imageId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return product;
+}

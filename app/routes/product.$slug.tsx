@@ -13,7 +13,7 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Form, Link } from "react-router";
+import { Form, Link, redirect } from "react-router";
 
 import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
@@ -23,7 +23,29 @@ import Label from "~/components/Label";
 import { ProductCard, ProductGrid } from "~/components/Product";
 import Select from "~/components/Select";
 
-export default function Product() {
+import cn from "~/lib/cn";
+import { getProductBySlug, getSimilarProducts } from "~/lib/products.server";
+
+import type { Route } from "./+types/product.$slug";
+import format from "~/lib/format";
+
+export async function loader({ params }: Route.LoaderArgs) {
+  const product = await getProductBySlug(params.slug);
+
+  if (!product) {
+    return redirect("/");
+  }
+
+  const similarProducts = await getSimilarProducts(product.id);
+
+  return { product, similarProducts };
+}
+
+export default function Product({ loaderData }: Route.ComponentProps) {
+  const { product, similarProducts } = loaderData;
+
+  const [productImage, setProductImage] = useState(product.images[0]);
+
   const [saleTimeRemaining, setSaleTimeRemaining] =
     useState<ReturnType<typeof getSaleTimeRemaining>>();
 
@@ -41,7 +63,7 @@ export default function Product() {
 
   function getDeliveryDate() {
     const deliveryDate = new Date();
-    deliveryDate.setDate(deliveryDate.getDate() + 5);
+    deliveryDate.setDate(deliveryDate.getDate() + 2);
     return deliveryDate;
   }
 
@@ -66,6 +88,36 @@ export default function Product() {
       minutes: formattedMinutes,
       seconds: formattedSeconds,
     };
+  }
+
+  function getSoldCount() {
+    const sold = Math.round(product.reviewsCount * 3.25);
+
+    if (sold < 100) return sold;
+
+    const units = [
+      { value: 1_000_000_000_000, suffix: "T" },
+      { value: 1_000_000_000, suffix: "B" },
+      { value: 1_000_000, suffix: "M" },
+      { value: 1_000, suffix: "K" },
+    ];
+
+    for (const unit of units) {
+      if (sold >= unit.value) {
+        const formatted = (sold / unit.value).toFixed(sold < 10_000 ? 1 : 0);
+        return formatted.replace(/\.0$/, "") + unit.suffix;
+      }
+    }
+
+    return sold.toString();
+  }
+
+  function getRatingKeyword() {
+    if (product.rating >= 4.5) return "Excellent";
+    if (product.rating >= 4) return "Great";
+    if (product.rating >= 3.5) return "Good";
+    if (product.rating >= 3) return "Fair";
+    return "Poor";
   }
 
   useEffect(() => {
@@ -134,26 +186,29 @@ export default function Product() {
               <div className="sticky top-4">
                 <div className="aspect-square p-8 bg-zinc-100 md:rounded-lg">
                   <img
-                    alt=""
+                    alt={product.name}
                     className="w-full h-full object-contain"
-                    src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
+                    src={productImage.url}
                   />
                 </div>
 
                 <div className="flex items-center gap-1 p-2 overflow-auto scroll-hidden md:px-0">
-                  <button className="min-w-16 w-16 h-16 p-2 bg-zinc-100 border border-zinc-100 rounded transition cursor-pointer hover:border-zinc-200 active:border-zinc-400">
-                    <img
-                      src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                      alt=""
-                    />
-                  </button>
-
-                  <button className="min-w-16 w-16 h-16 p-2 bg-zinc-100 border border-zinc-100 rounded transition cursor-pointer hover:border-zinc-200 active:border-zinc-400">
-                    <img
-                      src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                      alt=""
-                    />
-                  </button>
+                  {product.images.map((image, index) => (
+                    <button
+                      className={cn(
+                        "min-w-16 w-16 h-16 p-2 bg-zinc-100 border border-zinc-100 rounded transition cursor-pointer hover:border-zinc-200 active:border-zinc-400",
+                        image.id === productImage.id && "border-zinc-400"
+                      )}
+                      key={image.id}
+                      type="button"
+                      onClick={() => setProductImage(image)}
+                    >
+                      <img
+                        src={image.url}
+                        alt={product.name + " " + (index + 1)}
+                      />
+                    </button>
+                  ))}
                 </div>
 
                 <div className="flex bg-orange-500 text-white overflow-hidden md:rounded">
@@ -200,27 +255,26 @@ export default function Product() {
               </div>
 
               <h1 className="mt-1 text-2xl font-bold scroll-mt-20" id="main">
-                Geek Bar Pulse X
+                {product.name}
               </h1>
 
               <div className="flex items-center justify-between mt-0.5">
                 <div className="flex items-center text-sm">
-                  <p className="text-zinc-500">22k Sold</p>
+                  <p className="text-zinc-500">{getSoldCount()} Sold</p>
 
                   <span className="mx-1.5 text-zinc-500 text-xs">|</span>
 
                   <p>
-                    By{" "}
-                    <Link className="font-medium" to="/brand/geek-bar">
-                      Geek Bar
-                    </Link>
+                    By <span className="font-medium">{product.brand.name}</span>
                   </p>
 
                   <BadgeCheckIcon className="w-5 h-5 ml-0.5 fill-blue-500 text-white" />
                 </div>
 
                 <div className="flex items-center gap-2 text-orange-500 text-sm font-medium">
-                  <p>Excellent 4.7</p>
+                  <p>
+                    {getRatingKeyword()} {product.rating.toFixed(1)}
+                  </p>
                   <StarIcon className="w-5 h-5 fill-orange-500" />
                 </div>
               </div>
@@ -260,11 +314,13 @@ export default function Product() {
                     <TagIcon className="w-6 h-6 fill-red-500 text-white" />
 
                     <p className="text-red-500 text-2xl font-bold leading-6">
-                      $39.99
+                      {format.currency(product.price)}
                     </p>
                   </div>
 
-                  <p className="font-semibold line-through leading-4">$49.99</p>
+                  <p className="font-semibold line-through leading-4">
+                    {format.currency((product.price / 80) * 100)}
+                  </p>
 
                   <div className="flex items-center gap-1 px-1 py-0.5 bg-orange-50 border border-dashed border-orange-500 rounded text-orange-500 text-xs font-semibold">
                     20% OFF
@@ -304,19 +360,36 @@ export default function Product() {
                 <InputGroup className="max-w-1/2 lg:max-w-1/3 xl:max-w-1/4">
                   <Label htmlFor="quantity">Quantity</Label>
 
-                  <Input name="quantity" id="quantity" type="number" min={1} />
+                  <Input
+                    defaultValue={1}
+                    name="quantity"
+                    id="quantity"
+                    type="number"
+                    min={1}
+                    max={99}
+                  />
                 </InputGroup>
 
-                <InputGroup>
-                  <Label htmlFor="flavour">Flavour</Label>
+                {product.variants.map((variant) => {
+                  const key = `variant__${variant.id}`;
+                  return (
+                    <InputGroup key={key}>
+                      <Label htmlFor={key}>{variant.name}</Label>
 
-                  <Select name="flavour" id="flavour">
-                    <option disabled value="">
-                      Select a flavour
-                    </option>
-                    <option value="">Blue Razz Ice</option>
-                  </Select>
-                </InputGroup>
+                      <Select name={key} id={key}>
+                        <option disabled value="">
+                          Select a flavour
+                        </option>
+
+                        {variant.options.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </InputGroup>
+                  );
+                })}
 
                 <Button className="flex flex-col gap-1" ref={atcButtonRef}>
                   <span className="text-lg font-bold leading-4.5">
@@ -442,22 +515,30 @@ export default function Product() {
           <div>
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2">
-                <p className="text-xl font-semibold">2,699 Reviews</p>
+                <p className="text-xl font-semibold">
+                  {product.reviewsCount.toLocaleString("en-us")} Reviews
+                </p>
 
                 <span className="text-xs">|</span>
 
                 <div className="flex items-center gap-0.5 text-orange-500">
-                  <p className="font-medium mr-0.5">4.7</p>
+                  <p className="font-medium mr-0.5">
+                    {product.rating.toFixed(1)}
+                  </p>
 
                   <StarIcon className="w-5 h-5 fill-orange-500" />
                   <StarIcon className="w-5 h-5 fill-orange-500" />
                   <StarIcon className="w-5 h-5 fill-orange-500" />
                   <StarIcon className="w-5 h-5 fill-orange-500" />
 
-                  <div className="relative">
-                    <StarIcon className="w-5 h-5 fill-zinc-200 text-zinc-200" />
-                    <StarHalfIcon className="absolute top-0 left-0 w-5 h-5 fill-orange-500" />
-                  </div>
+                  {product.rating > 4.5 ? (
+                    <StarIcon className="w-5 h-5 fill-orange-500" />
+                  ) : (
+                    <div className="relative">
+                      <StarIcon className="w-5 h-5 fill-zinc-200 text-zinc-200" />
+                      <StarHalfIcon className="absolute top-0 left-0 w-5 h-5 fill-orange-500" />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -563,22 +644,25 @@ export default function Product() {
             </div>
           </div>
 
-          <hr className="hidden my-12 border-zinc-200 sm:block" />
+          {similarProducts.length > 0 && (
+            <>
+              <hr className="hidden my-12 border-zinc-200 sm:block" />
 
-          <div className="mt-8 sm:mt-0">
-            <h2 className="text-xl font-bold sm:text-2xl">
-              🛍️ Related Products
-            </h2>
+              <div className="mt-8 sm:mt-0">
+                <h2 className="text-xl font-bold sm:text-2xl">
+                  🛍️ Related Products
+                </h2>
 
-            <div className="mt-2">
-              <ProductGrid>
-                <ProductCard />
-                <ProductCard />
-                <ProductCard />
-                <ProductCard />
-              </ProductGrid>
-            </div>
-          </div>
+                <div className="mt-2">
+                  <ProductGrid>
+                    {similarProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </ProductGrid>
+                </div>
+              </div>
+            </>
+          )}
         </Container>
       </div>
 
