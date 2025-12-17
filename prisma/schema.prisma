@@ -25,6 +25,7 @@ model Product {
   id   String @id @default(uuid())
   slug String @unique
   name String
+  description String @db.Text
   price Float
   rating Float
   reviewsCount Int
@@ -36,7 +37,6 @@ model Product {
 
   brand     Brand @relation(fields: [brandSlug], references: [slug])
   brandSlug String
-
 }
 
 model ProductImage {

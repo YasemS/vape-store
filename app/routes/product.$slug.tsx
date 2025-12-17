@@ -669,32 +669,21 @@ export default function Product({
                   About the Geek Bar Pulse X
                 </h2>
 
-                <p className="mt-1 text-sm">
-                  The Geek Bar Pulse X is a high-performance disposable vape
-                  designed for long-lasting enjoyment. It offers up to 25,000
-                  puffs in regular mode and 15,000 in pulse mode, minimizing the
-                  need for frequent replacements. With an 18ml e-liquid capacity
-                  and dual mesh coil, it delivers smooth, flavorful vapor. An
-                  innovative 3D display lets you easily check both e-liquid and
-                  battery levels.
-                </p>
+                <p className="mt-1 text-sm">{product.description}</p>
 
                 <h2 className="text-xl font-semibold mt-4">Specifications</h2>
 
                 <ul className="mt-1 pl-2 list-disc list-inside text-sm">
                   <li>
-                    <strong>Brand:</strong> Geek Bar
+                    <strong>Brand:</strong> {product.brand.name}
                   </li>
 
-                  <li>
-                    <strong>Nicotine:</strong> 5%
-                  </li>
-                  <li>
-                    <strong>Puff Count:</strong> 15K - 25K
-                  </li>
-                  <li>
-                    <strong>Charging:</strong> USB-C
-                  </li>
+                  {product.specifications.map((specification) => (
+                    <li key={specification.id}>
+                      <strong>{specification.name}:</strong>{" "}
+                      {specification.value}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>

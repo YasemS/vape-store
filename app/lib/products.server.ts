@@ -94,6 +94,9 @@ export async function getProductBySlug(productSlug: string) {
             },
           },
         },
+        orderBy: {
+          name: "asc",
+        },
       },
       reviews: {
         select: {
@@ -102,6 +105,19 @@ export async function getProductBySlug(productSlug: string) {
           content: true,
           rating: true,
           created: true,
+        },
+        orderBy: {
+          rating: "desc",
+        },
+      },
+      specifications: {
+        select: {
+          id: true,
+          name: true,
+          value: true,
+        },
+        orderBy: {
+          name: "asc",
         },
       },
     },
