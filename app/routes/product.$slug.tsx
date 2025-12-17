@@ -12,22 +12,24 @@ import {
   XIcon,
   ZapIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Form, Link, redirect } from "react-router";
+import { ClientOnly } from "remix-utils/client-only";
 
 import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
 import Input from "~/components/Input";
 import InputGroup from "~/components/InputGroup";
 import Label from "~/components/Label";
-import { ProductCard, ProductGrid } from "~/components/Product";
+import { ProductCard, ProductGrid, ProductStars } from "~/components/Product";
 import Select from "~/components/Select";
+import TimeAgo from "~/components/TimeAgo";
 
 import cn from "~/lib/cn";
+import format from "~/lib/format";
 import { getProductBySlug, getSimilarProducts } from "~/lib/products.server";
 
 import type { Route } from "./+types/product.$slug";
-import format from "~/lib/format";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const product = await getProductBySlug(params.slug);
@@ -41,10 +43,17 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { product, similarProducts };
 }
 
+type ProductVariantState = {
+  [key: string]: string | undefined;
+};
+
 export default function Product({ loaderData }: Route.ComponentProps) {
   const { product, similarProducts } = loaderData;
 
   const [productImage, setProductImage] = useState(product.images[0]);
+
+  const [quantity, setQuantity] = useState(1);
+  const [variants, setVariants] = useState<ProductVariantState>({});
 
   const [saleTimeRemaining, setSaleTimeRemaining] =
     useState<ReturnType<typeof getSaleTimeRemaining>>();
@@ -55,9 +64,26 @@ export default function Product({ loaderData }: Route.ComponentProps) {
   const [showProductBar, setShowProductBar] = useState(false);
   const [showCartPopup, setShowCartPopup] = useState(false);
 
+  function onVariantChange(variantId: string, optionId: string) {
+    setVariants((prev) => ({
+      ...prev,
+      [variantId]: optionId,
+    }));
+
+    const variant = product.variants.find((v) => v.id === variantId);
+    if (!variant) return;
+
+    const option = variant.options.find((o) => o.id === optionId);
+    if (!option || !option.imageId) return;
+
+    const optionImage = product.images.find((i) => i.id === option.imageId);
+    if (!optionImage) return;
+
+    setProductImage(optionImage);
+  }
+
   function onFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     setShowCartPopup(true);
   }
 
@@ -376,7 +402,14 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                     <InputGroup key={key}>
                       <Label htmlFor={key}>{variant.name}</Label>
 
-                      <Select name={key} id={key}>
+                      <Select
+                        name={key}
+                        id={key}
+                        value={variants[variant.id] || ""}
+                        onChange={(e) =>
+                          onVariantChange(variant.id, e.target.value)
+                        }
+                      >
                         <option disabled value="">
                           Select a flavour
                         </option>
@@ -510,139 +543,93 @@ export default function Product({ loaderData }: Route.ComponentProps) {
 
       <div className="px-4">
         <Container>
-          <hr className="my-12 border-zinc-200" />
+          {product.reviews.length > 0 && (
+            <>
+              <hr className="my-12 border-zinc-200" />
 
-          <div>
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2">
-                <p className="text-xl font-semibold">
-                  {product.reviewsCount.toLocaleString("en-us")} Reviews
-                </p>
+              <div>
+                <div className="flex flex-col items-start">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xl font-semibold">
+                      {product.reviewsCount.toLocaleString("en-us")} Reviews
+                    </p>
 
-                <span className="text-xs">|</span>
+                    <span className="text-xs">|</span>
 
-                <div className="flex items-center gap-0.5 text-orange-500">
-                  <p className="font-medium mr-0.5">
-                    {product.rating.toFixed(1)}
-                  </p>
+                    <div className="flex items-center gap-0.5 text-orange-500">
+                      <p className="font-medium mr-0.5">
+                        {product.rating.toFixed(1)}
+                      </p>
 
-                  <StarIcon className="w-5 h-5 fill-orange-500" />
-                  <StarIcon className="w-5 h-5 fill-orange-500" />
-                  <StarIcon className="w-5 h-5 fill-orange-500" />
-                  <StarIcon className="w-5 h-5 fill-orange-500" />
-
-                  {product.rating > 4.5 ? (
-                    <StarIcon className="w-5 h-5 fill-orange-500" />
-                  ) : (
-                    <div className="relative">
-                      <StarIcon className="w-5 h-5 fill-zinc-200 text-zinc-200" />
-                      <StarHalfIcon className="absolute top-0 left-0 w-5 h-5 fill-orange-500" />
+                      <ProductStars rating={product.rating} size="lg" />
                     </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center mt-1 bg-green-100 rounded overflow-hidden">
-                <div className="flex items-center justify-center w-6 h-6 bg-green-600 text-white">
-                  <ShieldCheckIcon className="w-5 h-5 fill-white text-green-600" />
-                </div>
-
-                <p className="px-2 text-sm text-green-600 font-medium">
-                  All from verified purchases
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 mt-4 sm:grid-cols-2 sm:gap-2 lg:grid-cols-3">
-              <div className="py-4 border-b border-zinc-200 rounded first:pt-0 sm:border sm:p-3 sm:first:pt-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center min-w-10 w-10 h-10 bg-orange-500 rounded-full text-white">
-                    <span>J</span>
                   </div>
 
-                  <div>
-                    <p className="font-semibold leading-4">John Doe</p>
-                    <p className="mt-1 text-xs text-zinc-500 leading-3">
-                      December 18, 2025
+                  <div className="flex items-center mt-1 bg-green-100 rounded overflow-hidden">
+                    <div className="flex items-center justify-center w-6 h-6 bg-green-600 text-white">
+                      <ShieldCheckIcon className="w-5 h-5 fill-white text-green-600" />
+                    </div>
+
+                    <p className="px-2 text-sm text-green-600 font-medium">
+                      All from verified purchases
                     </p>
                   </div>
                 </div>
 
-                <p className="mt-2 text-sm leading-4.5">
-                  All smoke shops ran out, I looked for websites that sell them
-                  got scammed on some other websites but this one was legit and
-                  it got here less then a week and they through in an extra vape
-                  I wasn&apos;t expecting🔥🔥🔥
-                </p>
+                <div className="grid grid-cols-1 mt-4 sm:grid-cols-2 sm:gap-2 lg:grid-cols-3">
+                  {product.reviews.map((review) => (
+                    <div
+                      className="py-4 border-b border-zinc-200 rounded first:pt-0 sm:border sm:p-3 sm:first:pt-3"
+                      key={review.id}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center min-w-10 w-10 h-10 bg-orange-500 rounded-full text-white font-semibold">
+                          <span>{review.author.charAt(0).toUpperCase()}</span>
+                        </div>
 
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button className="min-w-16 w-16 h-16 rounded overflow-hidden">
-                    <img
-                      className="w-full h-full object-cover"
-                      src="https://puffplayground.com/wp-content/uploads/2025/09/image-8-scaled.jpg"
-                      alt=""
-                    />
-                  </button>
-                </div>
+                        <div>
+                          <p className="font-semibold leading-4">
+                            {review.author}
+                          </p>
+                          <p className="mt-0.5 text-xs text-zinc-500 leading-3">
+                            <ClientOnly
+                              fallback={review.created.toLocaleDateString(
+                                "en-US"
+                              )}
+                            >
+                              {() => <TimeAgo date={review.created} />}
+                            </ClientOnly>
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex gap-0.25 text-orange-500">
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                  </div>
+                      <p className="mt-2 text-sm leading-4.5">
+                        {review.content}
+                      </p>
 
-                  <p className="text-sm font-semibold leading-3.5">Rated 4.0</p>
-                </div>
-              </div>
+                      {/* <div className="flex flex-wrap gap-2 mt-2">
+                        <button className="min-w-16 w-16 h-16 rounded overflow-hidden">
+                          <img
+                            className="w-full h-full object-cover"
+                            src="https://puffplayground.com/wp-content/uploads/2025/09/image-8-scaled.jpg"
+                            alt=""
+                          />
+                        </button>
+                      </div> */}
 
-              <div className="py-4 border-b border-zinc-200 rounded first:pt-0 sm:border sm:p-3 sm:first:pt-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center min-w-10 w-10 h-10 bg-orange-500 rounded-full text-white">
-                    <span>J</span>
-                  </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <ProductStars rating={review.rating} />
 
-                  <div>
-                    <p className="font-semibold leading-4">John Doe</p>
-                    <p className="mt-1 text-xs text-zinc-500 leading-3">
-                      December 18, 2025
-                    </p>
-                  </div>
-                </div>
-
-                <p className="mt-2 text-sm leading-4.5">
-                  All smoke shops ran out, I looked for websites that sell them
-                  got scammed on some other websites but this one was legit and
-                  it got here less then a week and they through in an extra vape
-                  I wasn&apos;t expecting🔥🔥🔥
-                </p>
-
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button className="min-w-16 w-16 h-16 rounded overflow-hidden">
-                    <img
-                      className="w-full h-full object-cover"
-                      src="https://puffplayground.com/wp-content/uploads/2025/09/image-8-scaled.jpg"
-                      alt=""
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex gap-0.25 text-orange-500">
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                    <StarIcon className="w-4 h-4 fill-orange-500" />
-                  </div>
-
-                  <p className="text-sm font-semibold leading-3.5">Rated 4.0</p>
+                        <p className="text-sm font-semibold leading-3.5">
+                          Rated {review.rating.toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
           {similarProducts.length > 0 && (
             <>
@@ -671,24 +658,21 @@ export default function Product({ loaderData }: Route.ComponentProps) {
           <div className="flex items-center gap-3">
             <div className="min-w-16 w-16 h-16 bg-zinc-100 rounded">
               <img
+                alt={product.name}
                 className="w-full h-full p-2 object-contain"
-                src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                alt=""
+                src={productImage.url}
               />
             </div>
 
             <div>
-              <p className="text-lg font-bold leading-4.5">Geek Bar Pulse X</p>
+              <p className="text-lg font-bold leading-4.5">{product.name}</p>
               <p className="mt-1 text-red-500 font-semibold leading-4">
-                $34.99
+                {format.currency(product.price)}
               </p>
             </div>
 
-            <Link
-              className="flex items-center ml-auto px-8 h-12 bg-orange-500 rounded-full text-white font-bold"
-              to="#main"
-            >
-              Buy
+            <Link className="ml-auto" to="#main">
+              <Button>Buy</Button>
             </Link>
           </div>
         </div>
@@ -720,17 +704,42 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                 <div className="min-w-20 w-20 h-20 bg-zinc-100 rounded">
                   <img
                     className="w-full h-full p-2 object-contain"
-                    src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                    alt=""
+                    src={productImage.url}
+                    alt={product.name}
                   />
                 </div>
 
                 <div className="flex flex-col">
                   <p className="text-lg font-semibold leading-4.5">
-                    Geek Bar Pulse X
+                    {product.name}
                   </p>
                   <p className="mt-1 text-sm text-zinc-500 leading-3.5">
-                    Flavor: Blue Razz Ice
+                    {Object.keys(variants).map((variantId, index) => {
+                      const variant = product.variants.find(
+                        (variant) => variant.id === variantId
+                      );
+
+                      if (!variant) {
+                        return null;
+                      }
+
+                      const optionId = variants[variantId];
+
+                      const option = variant.options.find(
+                        (option) => option.id === optionId
+                      );
+
+                      if (!option) {
+                        return null;
+                      }
+
+                      return (
+                        <Fragment key={variantId}>
+                          <strong>{variant.name}:</strong> {option.name}
+                          {index < Object.keys(variants).length - 1 && ", "}
+                        </Fragment>
+                      );
+                    })}
                   </p>
                 </div>
 

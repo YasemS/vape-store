@@ -95,6 +95,15 @@ export async function getProductBySlug(productSlug: string) {
           },
         },
       },
+      reviews: {
+        select: {
+          id: true,
+          author: true,
+          content: true,
+          rating: true,
+          created: true,
+        },
+      },
     },
   });
 
