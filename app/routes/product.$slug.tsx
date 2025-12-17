@@ -335,8 +335,6 @@ export default function Product({
   useEffect(() => {
     if (!actionData) return;
 
-    console.log(actionData);
-
     if ("cart" in actionData) {
       setShowCartPopup(true);
       setCart(actionData.cart);
@@ -864,7 +862,8 @@ export default function Product({
                     {product.name}
                   </p>
                   <p className="mt-1 text-sm text-zinc-500 leading-3.5">
-                    <strong>Quantity:</strong> {quantity},{" "}
+                    <strong>Quantity:</strong> {quantity}
+                    {Object.keys(variants).length > 0 && ", "}
                     {Object.keys(variants).map((variantId, index) => {
                       const variant = product.variants.find(
                         (variant) => variant.id === variantId
