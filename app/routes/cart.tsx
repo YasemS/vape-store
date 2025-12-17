@@ -5,12 +5,126 @@ import {
   TrashIcon,
   TruckIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
 import Input from "~/components/Input";
+
+import { cartCookie, createCart, getCart } from "~/lib/cart.server";
+import prisma from "~/lib/prisma.server";
+
+import type { Route } from "./+types/cart";
+import format from "~/lib/format";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const cartId = await cartCookie.parse(request.headers.get("Cookie"));
+
+  let cart = cartId ? await getCart(cartId) : null;
+
+  if (!cart) {
+    cart = await createCart();
+  }
+
+  const products = await prisma.product.findMany({
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      price: true,
+      images: {
+        select: {
+          id: true,
+          url: true,
+        },
+        orderBy: {
+          url: "asc",
+        },
+      },
+      variants: {
+        select: {
+          id: true,
+          name: true,
+          options: {
+            select: {
+              id: true,
+              name: true,
+              imageId: true,
+            },
+          },
+        },
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+    where: {
+      id: {
+        in: cart.items.map((item) => item.productId),
+      },
+    },
+  });
+
+  const result = [];
+
+  for (const item of cart.items) {
+    const product = products.find((product) => product.id === item.productId);
+
+    if (!product) {
+      continue;
+    }
+
+    let image = product.images[0];
+
+    const variants = [];
+
+    for (const variant of product.variants) {
+      const selectedVariant = item.variants.find(
+        (v) => v.variantId === variant.id
+      );
+
+      if (!selectedVariant) {
+        continue;
+      }
+
+      const selectedOption = variant.options.find(
+        (option) => option.id === selectedVariant.optionId
+      );
+
+      if (!selectedOption) {
+        continue;
+      }
+
+      if (selectedOption.imageId) {
+        image =
+          product.images.find((image) => image.id === selectedOption.imageId) ||
+          image;
+      }
+
+      variants.push({
+        ...selectedVariant,
+        name: variant.name,
+        value: selectedOption.name,
+      });
+    }
+
+    result.push({
+      ...item,
+      name: product.name,
+      price: product.price,
+      image,
+      variants,
+    });
+  }
+
+  return {
+    cart: {
+      id: cart.id,
+      items: result,
+    },
+  };
+}
 
 function CartReservedBanner() {
   const [time, setTime] = useState(60 * 5);
@@ -42,115 +156,115 @@ function CartReservedBanner() {
   );
 }
 
-export default function Cart() {
+export default function Cart({ loaderData }: Route.ComponentProps) {
+  const { cart } = loaderData;
+
+  const cartCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
+  const cartSubtotal = cart.items.reduce(
+    (acc, item) => acc + (item.price / 80) * 100 * item.quantity,
+    0
+  );
+
+  const cartDiscount = cart.items.reduce(
+    (acc, item) => (item.price / 80) * 100 * 0.2 * item.quantity + acc,
+    0
+  );
+
+  const cartTotal = cart.items.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
+
   return (
     <div className="px-4 pt-8">
       <Container>
         <div className="flex items-center justify-center text-center md:justify-start md:text-left">
-          <h1 className="text-2xl font-bold">Cart (1)</h1>
+          <h1 className="text-2xl font-bold">Cart ({cartCount})</h1>
         </div>
 
         <div className="grid grid-cols-1 gap-8 mt-4 md:grid-cols-5">
           <div className="md:col-span-3">
             <div className="flex flex-col gap-2 items-center justify-center text-center md:items-start md:text-left">
               <div className="relative w-full h-4 bg-zinc-100 rounded-full">
-                <div className="absolute top-0 left-0 h-full w-1/2 bg-orange-500 rounded-full"></div>
+                <div
+                  className="absolute top-0 left-0 h-full w-1/2 bg-orange-500 rounded-full"
+                  style={{
+                    width: `${Math.min((cartSubtotal / 50) * 100, 100)}%`,
+                  }}
+                ></div>
               </div>
 
               <p className="font-semibold text-sm">
-                🚚 You're only $25 away from Free Shipping!
+                {cartTotal < 50
+                  ? `🚚 You're only ${format.currency(
+                      50 - cartTotal
+                    )} away from Free Shipping!`
+                  : `⚡ You're eligible for Free Shipping!`}
               </p>
             </div>
 
-            <CartReservedBanner />
+            {cart.items.length > 0 ? (
+              <>
+                <CartReservedBanner />
 
-            <div className="flex flex-col mt-4 border border-zinc-200 rounded-lg">
-              <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
-                <div className="min-w-20 w-20 h-20 p-2 bg-zinc-100 rounded">
-                  <img
-                    className="w-full h-full object-contain"
-                    src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                  />
-                </div>
+                <div className="flex flex-col mt-4 border border-zinc-200 rounded-lg">
+                  {cart.items.map((cartItem) => (
+                    <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
+                      <div className="min-w-20 w-20 h-20 p-2 bg-zinc-100 rounded">
+                        <img
+                          alt={cartItem.name}
+                          className="w-full h-full object-contain"
+                          src={cartItem.image.url}
+                        />
+                      </div>
 
-                <div className="flex flex-col w-full">
-                  <div className="flex items-start justify-between gap-4 w-full">
-                    <p className="text-lg font-semibold leading-4.5">
-                      Geek Bar Pulse X
-                    </p>
+                      <div className="flex flex-col w-full">
+                        <div className="flex items-start justify-between gap-4 w-full">
+                          <p className="text-lg font-semibold leading-4.5">
+                            {cartItem.name}
+                          </p>
 
-                    <button>
-                      <TrashIcon className="w-4 h-4 text-zinc-500" />
-                    </button>
-                  </div>
+                          <button>
+                            <TrashIcon className="w-4 h-4 text-zinc-500" />
+                          </button>
+                        </div>
 
-                  <p className="mt-0.5 text-zinc-500 text-sm leading-4">
-                    <strong>Flavour:</strong> Blue Razz Ice
-                  </p>
+                        <p className="mt-0.5 text-zinc-500 text-sm leading-4">
+                          {cartItem.variants.map((variant, index) => (
+                            <Fragment key={variant.variantId}>
+                              <strong>{variant.name}:</strong> {variant.value}
+                              {index !== cartItem.variants.length - 1 && ", "}
+                            </Fragment>
+                          ))}
+                        </p>
 
-                  <div className="flex items-end justify-between gap-4 mt-auto">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-red-500 font-semibold leading-4">
-                        $34.99
-                      </p>
+                        <div className="flex items-end justify-between gap-4 mt-auto">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-red-500 font-semibold leading-4">
+                              {format.currency(cartItem.price)}
+                            </p>
 
-                      <p className="text-sm text-zinc-500 font-medium line-through">
-                        $49.99
-                      </p>
+                            <p className="text-sm text-zinc-500 font-medium line-through">
+                              {format.currency((cartItem.price / 80) * 100)}
+                            </p>
+                          </div>
+
+                          <Input
+                            className="h-8 max-w-16 px-2 text-center"
+                            type="number"
+                            defaultValue={cartItem.quantity}
+                          />
+                        </div>
+                      </div>
                     </div>
-
-                    <Input
-                      className="h-8 max-w-16 px-2 text-center"
-                      type="number"
-                      defaultValue={1}
-                    />
-                  </div>
+                  ))}
                 </div>
+              </>
+            ) : (
+              <div className="mt-4 p-4 border border-zinc-200 rounded-lg font-semibold">
+                <p>Your cart is empty 🙁</p>
               </div>
-
-              <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
-                <div className="min-w-20 w-20 h-20 p-2 bg-zinc-100 rounded">
-                  <img
-                    className="w-full h-full object-contain"
-                    src="https://www.puffly.io/cdn-cgi/image/f=webp,q=90,h=450,w=450/https%3A%2F%2Fcdn.puffly.io%2Fimg%2Fproducts%2Fgeek-bar-pulse-x%2Fblue-razz-ice.png"
-                  />
-                </div>
-
-                <div className="flex flex-col w-full">
-                  <div className="flex items-start justify-between gap-4 w-full">
-                    <p className="text-lg font-semibold leading-4.5">
-                      Geek Bar Pulse X
-                    </p>
-
-                    <button>
-                      <TrashIcon className="w-4 h-4 text-zinc-500" />
-                    </button>
-                  </div>
-
-                  <p className="mt-0.5 text-zinc-500 text-sm leading-4">
-                    <strong>Flavour:</strong> Blue Razz Ice
-                  </p>
-
-                  <div className="flex items-end justify-between gap-4 mt-auto">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-red-500 font-semibold leading-4">
-                        $34.99
-                      </p>
-
-                      <p className="text-sm text-zinc-500 font-medium line-through">
-                        $49.99
-                      </p>
-                    </div>
-
-                    <Input
-                      className="h-8 max-w-16 px-2 text-center"
-                      type="number"
-                      defaultValue={1}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-4 mt-4">
               <div className="flex flex-col items-center justify-center text-center">
@@ -198,12 +312,18 @@ export default function Cart() {
               <div className="flex flex-col p-4 border-t border-zinc-200">
                 <div className="flex items-center justify-between">
                   <p>Subtotal</p>
-                  <p>$34.99</p>
+                  <p>{format.currency(cartSubtotal)}</p>
                 </div>
 
                 <div className="flex items-center justify-between mt-2">
                   <p>Discounts</p>
-                  <p className="text-red-600 font-medium">$15.00</p>
+                  {cartDiscount > 0 ? (
+                    <p className="text-red-600 font-medium">
+                      -{format.currency(cartDiscount)}
+                    </p>
+                  ) : (
+                    <p>$0.00</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between mt-2">
@@ -213,14 +333,16 @@ export default function Cart() {
 
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200 text-lg font-bold">
                   <p>Total</p>
-                  <p>$15.00</p>
+                  <p>{format.currency(cartTotal)}</p>
                 </div>
               </div>
             </div>
 
             <div className="mt-2">
               <Link to="/checkout">
-                <Button className="w-full">Checkout (1)</Button>
+                <Button className="w-full" disabled={cart.items.length === 0}>
+                  Checkout {cart.items.length > 0 && `(${cart.items.length})`}
+                </Button>
               </Link>
 
               <div className="flex items-center justify-center gap-0.5 mt-2">
