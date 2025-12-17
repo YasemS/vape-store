@@ -1,11 +1,12 @@
 import {
+  AlertCircleIcon,
   BadgeCheckIcon,
   CheckCircle2Icon,
   CheckIcon,
+  Loader2Icon,
   PackageOpen,
   PlaneTakeoffIcon,
   ShieldCheckIcon,
-  StarHalfIcon,
   StarIcon,
   TagIcon,
   TruckIcon,
@@ -13,7 +14,14 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Form, Link, redirect } from "react-router";
+import {
+  data,
+  Form,
+  Link,
+  redirect,
+  useNavigation,
+  useSubmit,
+} from "react-router";
 import { ClientOnly } from "remix-utils/client-only";
 
 import Button, { IconButton } from "~/components/Button";
@@ -30,6 +38,14 @@ import format from "~/lib/format";
 import { getProductBySlug, getSimilarProducts } from "~/lib/products.server";
 
 import type { Route } from "./+types/product.$slug";
+import {
+  addCartItem,
+  cartCookie,
+  createCart,
+  getCart,
+} from "~/lib/cart.server";
+import prisma from "~/lib/prisma.server";
+import { useCart } from "~/lib/cart";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const product = await getProductBySlug(params.slug);
@@ -43,12 +59,121 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { product, similarProducts };
 }
 
+export async function action({ params, request }: Route.ActionArgs) {
+  const product = await getProductBySlug(params.slug);
+
+  if (!product) {
+    return redirect("/");
+  }
+
+  const formData = await request.formData();
+
+  const quantity = formData.get("quantity");
+
+  if (!quantity || typeof quantity !== "string") {
+    return data({ error: "Quantity is required" }, { status: 400 });
+  }
+
+  const quantityInt = parseInt(quantity);
+
+  if (isNaN(quantityInt) || quantityInt < 1) {
+    return data({ error: "Quantity must be at least 1" }, { status: 400 });
+  }
+
+  if (quantityInt > 99) {
+    return data(
+      { error: "Quantity cannot be greater than 99" },
+      { status: 400 }
+    );
+  }
+
+  const variants: { [key: string]: string } = {};
+
+  for (const variant of product.variants) {
+    const formKey = `variant__${variant.id}`;
+
+    const selectedOptionId = formData.get(formKey);
+
+    if (!selectedOptionId) {
+      return data(
+        { error: `${variant.name} option is required` },
+        { status: 400 }
+      );
+    }
+
+    const selectedOption = variant.options.find(
+      (option) => option.id === selectedOptionId
+    );
+
+    if (!selectedOption) {
+      return data(
+        { error: `${variant.name} option is invalid` },
+        { status: 400 }
+      );
+    }
+
+    variants[variant.id] = selectedOption.id;
+  }
+
+  const cartId = await cartCookie.parse(request.headers.get("Cookie"));
+
+  let cart = cartId ? await getCart(cartId) : null;
+
+  if (!cart) {
+    cart = await createCart();
+  }
+
+  for (const item of cart.items) {
+    if (product.id !== item.productId) {
+      continue;
+    }
+
+    const isVariantsSame = item.variants.every((variant) => {
+      const optionId = variants[variant.variantId];
+
+      return optionId === variant.optionId;
+    });
+
+    if (!isVariantsSame) {
+      continue;
+    }
+
+    await prisma.cartItem.update({
+      where: { id: item.id },
+      data: { quantity: Math.min(item.quantity + quantityInt, 99) },
+    });
+
+    return {
+      cart: (await getCart(cart.id))!,
+    };
+  }
+
+  // create cart item
+  await addCartItem(cart.id, {
+    productId: product.id,
+    quantity: quantityInt,
+    variants,
+  });
+
+  return {
+    cart: (await getCart(cart.id))!,
+  };
+}
+
 type ProductVariantState = {
   [key: string]: string | undefined;
 };
 
-export default function Product({ loaderData }: Route.ComponentProps) {
+export default function Product({
+  actionData,
+  loaderData,
+}: Route.ComponentProps) {
   const { product, similarProducts } = loaderData;
+
+  const submit = useSubmit();
+  const loading = useNavigation().state !== "idle";
+
+  const { cart, setCart } = useCart();
 
   const [productImage, setProductImage] = useState(product.images[0]);
 
@@ -84,7 +209,11 @@ export default function Product({ loaderData }: Route.ComponentProps) {
 
   function onFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setShowCartPopup(true);
+
+    submit(e.currentTarget, {
+      method: "post",
+    });
+    // setShowCartPopup(true);
   }
 
   function getDeliveryDate() {
@@ -202,6 +331,17 @@ export default function Product({ loaderData }: Route.ComponentProps) {
       document.removeEventListener("click", onClickOutside);
     };
   }, [cartPopupRef, showCartPopup]);
+
+  useEffect(() => {
+    if (!actionData) return;
+
+    console.log(actionData);
+
+    if ("cart" in actionData) {
+      setShowCartPopup(true);
+      setCart(actionData.cart);
+    }
+  }, [actionData]);
 
   return (
     <>
@@ -383,16 +523,25 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                 className="flex flex-col gap-4 mt-6 pt-6 border-t border-zinc-200"
                 onSubmit={onFormSubmit}
               >
+                {actionData && "error" in actionData && (
+                  <div className="flex gap-2 text-red-500">
+                    <AlertCircleIcon className="w-4 h-4" />
+
+                    <p className="text-sm leading-4">{actionData.error}</p>
+                  </div>
+                )}
+
                 <InputGroup className="max-w-1/2 lg:max-w-1/3 xl:max-w-1/4">
                   <Label htmlFor="quantity">Quantity</Label>
 
                   <Input
-                    defaultValue={1}
                     name="quantity"
                     id="quantity"
                     type="number"
                     min={1}
                     max={99}
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value))}
                   />
                 </InputGroup>
 
@@ -424,12 +573,24 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                   );
                 })}
 
-                <Button className="flex flex-col gap-1" ref={atcButtonRef}>
-                  <span className="text-lg font-bold leading-4.5">
-                    Add to cart
-                  </span>
+                <Button
+                  className="flex-col"
+                  disabled={loading}
+                  ref={atcButtonRef}
+                >
+                  {loading ? (
+                    <Loader2Icon className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span className="text-lg font-bold leading-4.5">
+                        Add to cart
+                      </span>
 
-                  <span className="text-xs font-normal leading-3">20% OFF</span>
+                      <span className="text-xs font-normal leading-3">
+                        20% OFF
+                      </span>
+                    </>
+                  )}
                 </Button>
               </Form>
 
@@ -714,6 +875,7 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                     {product.name}
                   </p>
                   <p className="mt-1 text-sm text-zinc-500 leading-3.5">
+                    <strong>Quantity:</strong> {quantity},{" "}
                     {Object.keys(variants).map((variantId, index) => {
                       const variant = product.variants.find(
                         (variant) => variant.id === variantId
@@ -736,7 +898,7 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                       return (
                         <Fragment key={variantId}>
                           <strong>{variant.name}:</strong> {option.name}
-                          {index < Object.keys(variants).length - 1 && ", "}
+                          {index !== Object.keys(variants).length - 1 && ", "}
                         </Fragment>
                       );
                     })}
@@ -744,14 +906,15 @@ export default function Product({ loaderData }: Route.ComponentProps) {
                 </div>
 
                 <p className="ml-auto text-red-500 font-semibold leading-4">
-                  $34.99
+                  {format.currency(product.price * quantity)}
                 </p>
               </div>
 
               <div className="flex flex-col gap-2 mt-4">
                 <Link tabIndex={-1} to="/cart">
                   <Button className="w-full" variant="outline">
-                    View Cart (1)
+                    View Cart (
+                    {cart.items.reduce((acc, item) => acc + item.quantity, 0)})
                   </Button>
                 </Link>
 

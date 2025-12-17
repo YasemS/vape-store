@@ -4,7 +4,12 @@ import { MenuIcon, ShoppingCartIcon, SearchIcon, XIcon } from "lucide-react";
 
 import Container from "~/components/Container";
 
+import cn from "~/lib/cn";
+import { useCart } from "~/lib/cart";
+
 export default function Nav() {
+  const { cart } = useCart();
+
   const location = useLocation();
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -65,8 +70,13 @@ export default function Nav() {
                 <SearchIcon className="w-5 h-5" />
               </button>
 
-              <Link to="/cart">
-                <ShoppingCartIcon className="w-5 h-5" />
+              <Link className="relative" to="/cart">
+                <ShoppingCartIcon
+                  className={cn(
+                    "w-5 h-5",
+                    cart.items.length > 0 && "text-orange-500 fill-orange-500"
+                  )}
+                />
               </Link>
             </div>
           </div>

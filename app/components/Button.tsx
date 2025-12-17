@@ -14,7 +14,7 @@ export default function Button({
   return (
     <button
       className={cn(
-        "flex items-center justify-center gap-1 px-8 h-12 bg-orange-500 ring-3 ring-transparent rounded-full outline-none transition-transform text-white font-bold cursor-pointer hover:scale-102 active:scale-104 active:ring-orange-500/25",
+        "flex items-center justify-center gap-1 px-8 h-12 bg-orange-500 ring-3 ring-transparent rounded-full outline-none transition-transform text-white font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 hover:scale-102 active:scale-104 active:ring-orange-500/25",
         variant === "secondary" &&
           "bg-zinc-100 text-black active:ring-black/25",
         variant === "outline" &&

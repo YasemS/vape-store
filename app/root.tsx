@@ -1,4 +1,6 @@
+import { useState } from "react";
 import {
+  data,
   isRouteErrorResponse,
   Links,
   Meta,
@@ -14,6 +16,30 @@ import "~/app.css";
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
 import { DisclaimerAnnouncement } from "~/components/Announcement";
+
+import { CartContext } from "~/lib/cart";
+import { cartCookie, createCart, getCart } from "~/lib/cart.server";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const cartId = await cartCookie.parse(request.headers.get("Cookie"));
+
+  let cart = cartId ? await getCart(cartId) : null;
+
+  if (!cart) {
+    cart = await createCart();
+  }
+
+  return data(
+    {
+      cart,
+    },
+    {
+      headers: {
+        "Set-Cookie": await cartCookie.serialize(cart.id),
+      },
+    }
+  );
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -46,9 +72,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
+  const [cart, setCart] = useState(loaderData.cart);
+
   return (
-    <>
+    <CartContext.Provider value={{ cart, setCart }}>
       <DisclaimerAnnouncement />
 
       <Nav />
@@ -58,7 +86,7 @@ export default function App() {
       </main>
 
       <Footer />
-    </>
+    </CartContext.Provider>
   );
 }
 
