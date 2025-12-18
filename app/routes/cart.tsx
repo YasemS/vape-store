@@ -1,12 +1,13 @@
 import {
   CreditCardIcon,
+  Loader2Icon,
   PackageOpenIcon,
   ShieldCheckIcon,
   TrashIcon,
   TruckIcon,
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { data, Link, useFetcher } from "react-router";
 
 import Button, { IconButton } from "~/components/Button";
 import Container from "~/components/Container";
@@ -17,6 +18,7 @@ import prisma from "~/lib/prisma.server";
 
 import type { Route } from "./+types/cart";
 import format from "~/lib/format";
+import { useCart } from "~/lib/cart";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const cartId = await cartCookie.parse(request.headers.get("Cookie"));
@@ -141,15 +143,74 @@ export async function action({ request }: Route.ActionArgs) {
 
   const formData = await request.formData();
 
-  if (formData.has("remove")) {
-    const cartItemId = formData.get("remove");
+  const cartItemId = formData.get("id");
 
-    if (!cartItemId) {
+  if (!cartItemId || typeof cartItemId !== "string") {
+    return data({ error: "Invalid cart item id" }, { status: 400 });
+  }
+
+  const cartItem = cart.items.find((item) => item.id === cartItemId);
+
+  if (!cartItem) {
+    return data({ error: "Invalid cart item id" }, { status: 400 });
+  }
+
+  if (!formData.has("delete") && !formData.has("quantity")) {
+    return data({ error: "Invalid form data" }, { status: 400 });
+  }
+
+  if (formData.has("delete") && formData.has("quantity")) {
+    return data({ error: "Invalid form data" }, { status: 400 });
+  }
+
+  if (formData.has("delete")) {
+    await prisma.cartItemVariant.deleteMany({
+      where: {
+        cartItemId,
+      },
+    });
+
+    await prisma.cartItem.delete({
+      where: {
+        id: cartItemId,
+      },
+    });
+  }
+
+  if (formData.has("quantity")) {
+    const quantity = formData.get("quantity");
+
+    if (!quantity || typeof quantity !== "string") {
       return;
     }
 
-    cart.items = cart.items.filter((item) => item.id !== cartItemId);
+    const quantityInt = parseInt(quantity);
+
+    if (quantityInt < 1 || quantityInt > 99) {
+      return data(
+        { error: "Quantity must be between 1 and 99" },
+        { status: 400 }
+      );
+    }
+
+    if (quantityInt === cartItem.quantity) {
+      return;
+    }
+
+    await prisma.cartItem.update({
+      where: {
+        id: cartItemId,
+      },
+      data: {
+        quantity: quantityInt,
+      },
+    });
   }
+
+  return {
+    success: true,
+    cart: (await getCart(cartId))!,
+  };
 }
 
 function CartReservedBanner() {
@@ -235,54 +296,7 @@ export default function Cart({ loaderData }: Route.ComponentProps) {
 
                 <div className="flex flex-col mt-4 border border-zinc-200 rounded-lg">
                   {cart.items.map((cartItem) => (
-                    <div className="flex gap-4 p-4 border-t border-zinc-200 first:border-t-0">
-                      <div className="min-w-20 w-20 h-20 p-2 bg-zinc-100 rounded">
-                        <img
-                          alt={cartItem.name}
-                          className="w-full h-full object-contain"
-                          src={cartItem.image.url}
-                        />
-                      </div>
-
-                      <div className="flex flex-col w-full">
-                        <div className="flex items-start justify-between gap-4 w-full">
-                          <p className="text-lg font-semibold leading-4.5">
-                            {cartItem.name}
-                          </p>
-
-                          <button>
-                            <TrashIcon className="w-4 h-4 text-zinc-500" />
-                          </button>
-                        </div>
-
-                        <p className="mt-0.5 text-zinc-500 text-sm leading-4">
-                          {cartItem.variants.map((variant, index) => (
-                            <Fragment key={variant.variantId}>
-                              <strong>{variant.name}:</strong> {variant.value}
-                              {index !== cartItem.variants.length - 1 && ", "}
-                            </Fragment>
-                          ))}
-                        </p>
-
-                        <div className="flex items-end justify-between gap-4 mt-auto">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-red-500 font-semibold leading-4">
-                              {format.currency(cartItem.price)}
-                            </p>
-
-                            <p className="text-sm text-zinc-500 font-medium line-through">
-                              {format.currency((cartItem.price / 80) * 100)}
-                            </p>
-                          </div>
-
-                          <Input
-                            className="h-8 max-w-16 px-2 text-center"
-                            type="number"
-                            defaultValue={cartItem.quantity}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    <CartItem key={cartItem.id} cartItem={cartItem} />
                   ))}
                 </div>
               </>
@@ -397,6 +411,138 @@ export default function Cart({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
       </Container>
+    </div>
+  );
+}
+
+type CartItemProps =
+  Route.ComponentProps["loaderData"]["cart"]["items"][number];
+
+function CartItem({ cartItem }: { cartItem: CartItemProps }) {
+  const fetcher = useFetcher<typeof action>();
+
+  const { setCart } = useCart();
+
+  const [loading, setLoading] = useState(false);
+
+  const [quantity, setQuantity] = useState(cartItem.quantity.toString());
+
+  function onDeleteClick() {
+    setLoading(true);
+
+    fetcher.submit(
+      {
+        id: cartItem.id,
+        delete: true,
+      },
+      {
+        method: "post",
+      }
+    );
+  }
+
+  useEffect(() => {
+    if (!quantity) return;
+
+    const quantityInt = parseInt(quantity);
+
+    if (quantityInt < 1) {
+      setQuantity("1");
+    }
+
+    if (quantityInt > 99) {
+      setQuantity("99");
+    }
+
+    if (quantityInt === cartItem.quantity) return;
+
+    const timeout = setTimeout(() => {
+      setLoading(true);
+
+      console.log(cartItem.id, quantityInt);
+
+      fetcher.submit(
+        {
+          id: cartItem.id,
+          quantity: quantityInt,
+        },
+        {
+          method: "post",
+        }
+      );
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [quantity]);
+
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    setLoading(false);
+
+    if ("cart" in fetcher.data) {
+      setCart(fetcher.data.cart);
+    }
+  }, [fetcher.data]);
+
+  return (
+    <div className="flex gap-4 relative p-4 border-t border-zinc-200 first:border-t-0">
+      <div className="min-w-20 w-20 h-20 p-2 bg-zinc-100 rounded">
+        <img
+          alt={cartItem.name}
+          className="w-full h-full object-contain"
+          src={cartItem.image.url}
+        />
+      </div>
+
+      <div className="flex flex-col w-full">
+        <div className="flex items-start justify-between gap-4 w-full">
+          <p className="text-lg font-semibold leading-4.5">{cartItem.name}</p>
+
+          <button
+            className="cursor-pointer"
+            type="button"
+            onClick={onDeleteClick}
+          >
+            <TrashIcon className="w-4 h-4 text-zinc-500" />
+          </button>
+        </div>
+
+        <p className="mt-0.5 text-zinc-500 text-sm leading-4">
+          {cartItem.variants.map((variant, index) => (
+            <Fragment key={variant.variantId}>
+              <strong>{variant.name}:</strong> {variant.value}
+              {index !== cartItem.variants.length - 1 && ", "}
+            </Fragment>
+          ))}
+        </p>
+
+        <div className="flex items-end justify-between gap-4 mt-auto">
+          <div className="flex items-center gap-1.5">
+            <p className="text-red-500 font-semibold leading-4">
+              {format.currency(cartItem.price * cartItem.quantity)}
+            </p>
+
+            <p className="text-sm text-zinc-500 font-medium line-through">
+              {format.currency((cartItem.price / 80) * 100 * cartItem.quantity)}
+            </p>
+          </div>
+
+          <Input
+            className="h-8 max-w-16 px-2 text-center"
+            disabled={loading}
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center absolute top-0 left-0 w-full h-full bg-white/75">
+          <Loader2Icon className="w-6 h-6 text-zinc-500 animate-spin" />
+        </div>
+      )}
     </div>
   );
 }
