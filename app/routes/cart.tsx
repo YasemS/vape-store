@@ -126,6 +126,32 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  const cartId = await cartCookie.parse(request.headers.get("Cookie"));
+
+  if (!cartId) {
+    return;
+  }
+
+  const cart = await getCart(cartId);
+
+  if (!cart) {
+    return;
+  }
+
+  const formData = await request.formData();
+
+  if (formData.has("remove")) {
+    const cartItemId = formData.get("remove");
+
+    if (!cartItemId) {
+      return;
+    }
+
+    cart.items = cart.items.filter((item) => item.id !== cartItemId);
+  }
+}
+
 function CartReservedBanner() {
   const [time, setTime] = useState(60 * 5);
 
@@ -340,8 +366,8 @@ export default function Cart({ loaderData }: Route.ComponentProps) {
 
             <div className="mt-2">
               <Link to="/checkout">
-                <Button className="w-full" disabled={cart.items.length === 0}>
-                  Checkout {cart.items.length > 0 && `(${cart.items.length})`}
+                <Button className="w-full" disabled={cartCount === 0}>
+                  Checkout {cartCount > 0 && `(${cartCount})`}
                 </Button>
               </Link>
 
