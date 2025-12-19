@@ -66,9 +66,9 @@ export default function Nav() {
             </div>
 
             <div className="flex items-center justify-end gap-4 min-w-32 w-32 max-w-32">
-              <button onClick={() => console.log("TODO: setup search")}>
+              {/* <button onClick={() => console.log("TODO: setup search")}>
                 <SearchIcon className="w-5 h-5" />
-              </button>
+              </button> */}
 
               <Link className="relative" to="/cart">
                 <ShoppingCartIcon
