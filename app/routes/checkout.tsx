@@ -1,6 +1,7 @@
 import {
+  AlertCircleIcon,
   CreditCardIcon,
-  LockIcon,
+  Loader2Icon,
   PackageOpenIcon,
   SearchIcon,
   ShieldCheckIcon,
@@ -14,6 +15,7 @@ import {
 } from "react-google-autocomplete";
 import { ClientOnly } from "remix-utils/client-only";
 import QRCode from "react-qr-code";
+import validator from "validator";
 
 import Button from "~/components/Button";
 import Checkbox from "~/components/Checkbox";
@@ -34,6 +36,7 @@ import {
 import cn from "~/lib/cn";
 import format from "~/lib/format";
 import prisma from "~/lib/prisma.server";
+import acceptjs from "~/lib/acceptjs.client";
 import { cartCookie, getCart } from "~/lib/cart.server";
 
 import type { Route } from "./+types/checkout";
@@ -65,6 +68,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const cart = await getCart(cartId);
 
   if (!cart) {
+    return redirect("/");
+  }
+
+  if (cart.items.length === 0) {
     return redirect("/");
   }
 
@@ -164,13 +171,23 @@ export async function loader({ request }: Route.LoaderArgs) {
       id: cart.id,
       items: result,
     },
+    config: {
+      authorizenet: {
+        apiLoginId: process.env.AUTHORIZENET_LOGIN_ID || "",
+        clientKey: process.env.AUTHORIZENET_CLIENT_KEY || "",
+      },
+    },
   };
 }
 
 export default function Checkout({ loaderData }: Route.ComponentProps) {
-  const { cart } = loaderData;
+  const { cart, config } = loaderData;
 
   const address2Ref = useRef<HTMLInputElement>(null);
+  const cardNumberRef = useRef<HTMLInputElement>(null);
+  const cardExpiryRef = useRef<HTMLInputElement>(null);
+  const cardCvvRef = useRef<HTMLInputElement>(null);
+  const cardNameRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail] = useState("");
   const [subscribe, setSubscribe] = useState(true);
@@ -194,6 +211,9 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
 
   const [isAddressManual, setIsAddressManual] = useState(false);
   const [showAddressFull, setShowAddressFull] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const cartSubtotal = cart.items.reduce(
     (acc, item) => acc + (item.price / 80) * 100 * item.quantity,
@@ -313,8 +333,10 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
     let maxLength = 16;
     if (brand === "AMEX") {
       maxLength = 15;
-    } else if (brand === "VISA") {
-      maxLength = 19;
+    }
+
+    if (raw.length >= maxLength) {
+      cardExpiryRef.current?.focus();
     }
 
     const trimmed = raw.slice(0, maxLength);
@@ -376,6 +398,189 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
 
     const formatted = year ? `${month}/${year}` : month;
     setCardExpiry(formatted);
+
+    if (formatted.length === 5) {
+      cardCvvRef.current?.focus();
+    }
+  }
+
+  function onCardCvvChange(value: string) {
+    setCardCvv(value);
+
+    const brand = getCardBrand();
+
+    // Set max length by brand
+    let maxLength = 3;
+    if (brand === "AMEX") {
+      maxLength = 4;
+    }
+
+    if (value.length >= maxLength) {
+      cardNameRef.current?.focus();
+    }
+  }
+
+  function onPaymentSelect(newPaymentMethod: string) {
+    if (newPaymentMethod === paymentMethod) return;
+
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvv("");
+
+    setPaymentMethod(newPaymentMethod);
+
+    if (newPaymentMethod === "credit-card") {
+      if (!cardName) setCardName((firstName + " " + lastName).trim());
+      if (!cardPostal) setCardPostal(postal);
+
+      setTimeout(() => {
+        cardNumberRef.current?.focus();
+      }, 100);
+    }
+  }
+
+  function onCheckoutError(newError: string) {
+    setError(newError);
+    setLoading(false);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function onCheckoutClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+
+    if (loading) return;
+
+    setLoading(true);
+
+    if (!email) {
+      return onCheckoutError("Email is required.");
+    }
+
+    if (!validator.isEmail(email)) {
+      return onCheckoutError("Invalid email.");
+    }
+
+    if (!firstName) {
+      return onCheckoutError("First name is required.");
+    }
+
+    if (!lastName) {
+      return onCheckoutError("Last name is required.");
+    }
+
+    if (!address) {
+      return onCheckoutError("Address is required.");
+    }
+
+    if (!country) {
+      return onCheckoutError("Country is required.");
+    }
+
+    if (!city) {
+      return onCheckoutError("City is required.");
+    }
+
+    if (!state) {
+      return onCheckoutError("State is required.");
+    }
+
+    if (!postal) {
+      return onCheckoutError("Postal code is required.");
+    }
+
+    if (!shippingOption) {
+      return onCheckoutError("Shipping method is required.");
+    }
+
+    if (!paymentMethod) {
+      return onCheckoutError("Payment method is required.");
+    }
+
+    const data: { [key: string]: string } = {
+      email,
+      firstName,
+      lastName,
+      address,
+      address2,
+      country,
+      city,
+      state,
+      postal,
+      shippingId,
+      paymentMethod,
+    };
+
+    if (paymentMethod === "credit-card") {
+      if (!cardNumber) {
+        return onCheckoutError("Card number is required.");
+      }
+
+      if (!cardExpiry) {
+        return onCheckoutError("Card expiry is required.");
+      }
+
+      if (!cardCvv) {
+        return onCheckoutError("Card CVV is required.");
+      }
+
+      if (!cardName) {
+        return onCheckoutError("Card holder is required.");
+      }
+
+      if (!cardPostal) {
+        return onCheckoutError("Card postal code is required.");
+      }
+
+      if (cardExpiry.split("/").length !== 2) {
+        return onCheckoutError("Invalid card expiry date.");
+      }
+
+      if (cardPostal.length > 20) {
+        return onCheckoutError("Billing zip cannot exceed 20 characters");
+      }
+
+      if (cardName.length > 64) {
+        return onCheckoutError(
+          "Name of card holder cannot exceed 64 characters"
+        );
+      }
+
+      const authData = {
+        apiLoginID: config.authorizenet.apiLoginId,
+        clientKey: config.authorizenet.clientKey,
+      };
+
+      const cardData = {
+        cardNumber: cardNumber.replace(/\D/g, ""),
+        month: parseInt(cardExpiry.split("/")[0]).toString(),
+        year: cardExpiry.split("/")[1],
+        cardCode: cardCvv,
+        zip: cardPostal.trim(),
+        fullName: cardName.trim(),
+      };
+
+      const secureData = {
+        authData,
+        cardData,
+      };
+
+      const paymentData = await acceptjs.dispatchData(secureData);
+
+      if (paymentData.messages.resultCode !== "Ok") {
+        return onCheckoutError(paymentData.messages.message[0].text);
+      }
+
+      data["paymentDescriptor"] = paymentData.opaqueData.dataDescriptor;
+      data["paymentValue"] = paymentData.opaqueData.dataValue;
+    }
+
+    console.log(data);
+
+    setLoading(false);
   }
 
   return (
@@ -383,6 +588,14 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
       <Container className="">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           <div className="md:col-span-3">
+            {error && (
+              <div className="flex gap-2 mb-8 text-red-500">
+                <AlertCircleIcon className="w-4 h-4" />
+
+                <p className="text-sm leading-4">{error}</p>
+              </div>
+            )}
+
             <div>
               <h2 className="text-xl font-semibold">Contact</h2>
 
@@ -448,19 +661,6 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                   </InputGroup>
                 </div>
 
-                <InputGroup>
-                  <Label htmlFor="country">Country</Label>
-
-                  <Select
-                    autoComplete="country"
-                    id="country"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                  >
-                    <option value="us">United States</option>
-                  </Select>
-                </InputGroup>
-
                 <InputGroup className="items-start w-full">
                   <Label htmlFor="address">Address</Label>
 
@@ -507,6 +707,19 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                         value={address2}
                         onChange={(e) => setAddress2(e.target.value)}
                       />
+                    </InputGroup>
+
+                    <InputGroup>
+                      <Label htmlFor="country">Country</Label>
+
+                      <Select
+                        autoComplete="country"
+                        id="country"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                      >
+                        <option value="us">United States</option>
+                      </Select>
                     </InputGroup>
 
                     <InputGroup>
@@ -631,7 +844,7 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                   active={paymentMethod === "credit-card"}
                 >
                   <PaymentMethodButton
-                    onClick={() => setPaymentMethod("credit-card")}
+                    onClick={() => onPaymentSelect("credit-card")}
                   >
                     <Radio active={paymentMethod === "credit-card"} />
 
@@ -649,7 +862,9 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                           <Input
                             autoComplete="cc-number"
                             id="card-number"
+                            inputMode="numeric"
                             type="text"
+                            ref={cardNumberRef}
                             value={cardNumber}
                             onChange={(e) => onCardNumberChange(e.target.value)}
                           />
@@ -662,8 +877,10 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                             <Input
                               autoComplete="cc-exp"
                               id="card-expiration"
+                              inputMode="numeric"
                               type="text"
                               placeholder="MM / YY"
+                              ref={cardExpiryRef}
                               value={cardExpiry}
                               onChange={(e) =>
                                 onCardExpiryChange(e.target.value)
@@ -677,9 +894,11 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                             <Input
                               autoComplete="cc-csc"
                               id="card-cvc"
+                              inputMode="numeric"
                               type="text"
+                              ref={cardCvvRef}
                               value={cardCvv}
-                              onChange={(e) => setCardCvv(e.target.value)}
+                              onChange={(e) => onCardCvvChange(e.target.value)}
                             />
                           </InputGroup>
                         </div>
@@ -693,6 +912,7 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                             autoComplete="cc-name"
                             id="card-name"
                             type="text"
+                            ref={cardNameRef}
                             value={cardName}
                             onChange={(e) => setCardName(e.target.value)}
                           />
@@ -714,36 +934,88 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
                   )}
                 </PaymentMethodContainer>
 
-                <ZellePaymentMethod
-                  active={paymentMethod === "zelle"}
-                  onSelect={() => setPaymentMethod("zelle")}
-                >
-                  <PaymentMethodContent className="items-center justify-center text-center">
-                    <p className="text-sm">
-                      Pay by sending{" "}
-                      <strong>{format.currency(cartTotal)}</strong> to the Zelle
-                      QR or number below
-                    </p>
+                <PaymentMethodContainer active={paymentMethod === "cash-app"}>
+                  <PaymentMethodButton
+                    onClick={() => onPaymentSelect("cash-app")}
+                  >
+                    <Radio active={paymentMethod === "cash-app"} />
 
-                    <ClientOnly>
-                      {() => (
-                        <QRCode
-                          className="w-40 h-40"
-                          value="https://example.com"
-                        />
-                      )}
-                    </ClientOnly>
+                    <p className="font-semibold">Cash App</p>
 
-                    <p className="text-xl font-bold leading-5">
-                      +1 (786) 566-3330
-                    </p>
+                    <PaymentMethodIcons>
+                      <PaymentMethodIcon
+                        alt="Cash App"
+                        src="/img/cash-app.svg"
+                      />
+                    </PaymentMethodIcons>
+                  </PaymentMethodButton>
 
-                    <p className="-mt-2 text-xs">
-                      Please send the payment via Zelle, then click complete
-                      checkout.
-                    </p>
-                  </PaymentMethodContent>
-                </ZellePaymentMethod>
+                  {paymentMethod === "cash-app" && (
+                    <PaymentMethodContent className="items-center justify-center text-center">
+                      <p className="text-sm">
+                        Pay by sending{" "}
+                        <strong>{format.currency(cartTotal)}</strong> to the
+                        Cash App QR or tag below
+                      </p>
+
+                      <ClientOnly>
+                        {() => (
+                          <QRCode
+                            className="w-40 h-40"
+                            value="https://cash.app/$pufflyio?qr=1"
+                          />
+                        )}
+                      </ClientOnly>
+
+                      <p className="text-xl font-bold leading-5">$pufflyio</p>
+
+                      <p className="-mt-2 text-xs">
+                        Please send the payment via Cash App, then click
+                        complete checkout.
+                      </p>
+                    </PaymentMethodContent>
+                  )}
+                </PaymentMethodContainer>
+
+                <PaymentMethodContainer active={paymentMethod === "zelle"}>
+                  <PaymentMethodButton onClick={() => onPaymentSelect("zelle")}>
+                    <Radio active={paymentMethod === "zelle"} />
+
+                    <p className="font-semibold">Zelle</p>
+
+                    <PaymentMethodIcons>
+                      <PaymentMethodIcon alt="Zelle" src="/img/zelle.svg" />
+                    </PaymentMethodIcons>
+                  </PaymentMethodButton>
+
+                  {paymentMethod === "zelle" && (
+                    <PaymentMethodContent className="items-center justify-center text-center">
+                      <p className="text-sm">
+                        Pay by sending{" "}
+                        <strong>{format.currency(cartTotal)}</strong> to the
+                        Zelle QR or number below
+                      </p>
+
+                      <ClientOnly>
+                        {() => (
+                          <QRCode
+                            className="w-40 h-40"
+                            value="https://www.zellepay.com/qr-codes/?data=eyJ0b2tlbiI6Ijc4Ni01NjYtMzMzMCIsIm5hbWUiOiJBTlRIT05ZIFJJVkVSTyJ9"
+                          />
+                        )}
+                      </ClientOnly>
+
+                      <p className="text-xl font-bold leading-5">
+                        +1 (786) 566-3330
+                      </p>
+
+                      <p className="-mt-2 text-xs">
+                        Please send the payment via Zelle, then click complete
+                        checkout.
+                      </p>
+                    </PaymentMethodContent>
+                  )}
+                </PaymentMethodContainer>
               </div>
             </div>
 
@@ -869,7 +1141,18 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
               </div>
 
               <div className="mt-2">
-                <Button className="w-full">Complete Checkout</Button>
+                <Button
+                  className="w-full"
+                  disabled={loading}
+                  type="submit"
+                  onClick={onCheckoutClick}
+                >
+                  {loading ? (
+                    <Loader2Icon className="w-5 h-5 animate-spin" />
+                  ) : (
+                    "Complete Checkout"
+                  )}
+                </Button>
 
                 <p className="mt-2 text-xs text-zinc-500 text-center leading-3.5">
                   By making a purchase, you agree to our{" "}
@@ -1055,27 +1338,5 @@ function CardIcons({ brand }: CardIconsProps) {
         </>
       )}
     </PaymentMethodIcons>
-  );
-}
-
-function ZellePaymentMethod({
-  children,
-  active,
-  onSelect,
-}: PaymentMethodProps) {
-  return (
-    <PaymentMethodContainer active={active}>
-      <PaymentMethodButton onClick={() => onSelect && onSelect()}>
-        <Radio active={active} />
-
-        <p className="font-semibold">Zelle</p>
-
-        <PaymentMethodIcons>
-          <PaymentMethodIcon alt="Zelle" src="/img/zelle.svg" />
-        </PaymentMethodIcons>
-      </PaymentMethodButton>
-
-      {active && children}
-    </PaymentMethodContainer>
   );
 }

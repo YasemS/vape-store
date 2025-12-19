@@ -67,6 +67,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <ScrollRestoration />
         <Scripts />
+
+        <script
+          type="text/javascript"
+          src="https://js.authorize.net/v1/Accept.js"
+        ></script>
       </body>
     </html>
   );
