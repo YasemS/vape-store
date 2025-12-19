@@ -7,14 +7,15 @@ import {
   ShieldCheckIcon,
   TruckIcon,
 } from "lucide-react";
-import { Fragment, useRef, useState } from "react";
-import { Link, redirect } from "react-router";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { data, Link, redirect, useNavigate, useSubmit } from "react-router";
 import {
   usePlacesWidget,
   type ReactGoogleAutocompleteProps,
 } from "react-google-autocomplete";
 import { ClientOnly } from "remix-utils/client-only";
 import QRCode from "react-qr-code";
+import crypto from "crypto";
 import validator from "validator";
 
 import Button from "~/components/Button";
@@ -37,9 +38,11 @@ import cn from "~/lib/cn";
 import format from "~/lib/format";
 import prisma from "~/lib/prisma.server";
 import acceptjs from "~/lib/acceptjs.client";
+import authorizenet from "~/lib/authorizenet.server";
 import { cartCookie, getCart } from "~/lib/cart.server";
 
 import type { Route } from "./+types/checkout";
+import type { OrderStatus } from "generated/prisma/enums";
 
 const shippingOptions = [
   {
@@ -57,6 +60,312 @@ const shippingOptions = [
     estimatedDays: 2,
   },
 ];
+
+function generateOrderId(length: number) {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  const charactersLength = characters.length;
+
+  const bytes = crypto.randomBytes(length);
+
+  for (let i = 0; i < length; i++) {
+    result += characters[bytes[i] % charactersLength];
+  }
+
+  return result;
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const cartId = await cartCookie.parse(request.headers.get("Cookie"));
+
+  if (!cartId) {
+    return redirect("/");
+  }
+
+  const cart = await getCart(cartId);
+
+  if (!cart) {
+    return redirect("/");
+  }
+
+  if (cart.items.length === 0) {
+    return redirect("/");
+  }
+
+  const products = await prisma.product.findMany({
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      price: true,
+      images: {
+        select: {
+          id: true,
+          url: true,
+        },
+        orderBy: {
+          url: "asc",
+        },
+      },
+      variants: {
+        select: {
+          id: true,
+          name: true,
+          options: {
+            select: {
+              id: true,
+              name: true,
+              imageId: true,
+            },
+          },
+        },
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+    where: {
+      id: {
+        in: cart.items.map((item) => item.productId),
+      },
+    },
+  });
+
+  const result = [];
+
+  for (const item of cart.items) {
+    const product = products.find((product) => product.id === item.productId);
+
+    if (!product) {
+      continue;
+    }
+
+    result.push({
+      ...item,
+      product,
+    });
+  }
+
+  const formData = await request.formData();
+
+  const email = formData.get("email");
+  const firstName = formData.get("firstName");
+  const lastName = formData.get("lastName");
+  const country = formData.get("country");
+  const address = formData.get("address");
+  const address2 = formData.get("address2");
+  const city = formData.get("city");
+  const state = formData.get("state");
+  const postal = formData.get("postal");
+  const shippingId = formData.get("shippingId");
+  const paymentMethod = formData.get("paymentMethod");
+
+  if (!email || typeof email !== "string") {
+    return data({ error: "Please enter your email address" }, { status: 400 });
+  }
+
+  if (!validator.isEmail(email)) {
+    return data(
+      { error: "Please enter a valid email address" },
+      { status: 400 }
+    );
+  }
+
+  if (!firstName || typeof firstName !== "string") {
+    return data({ error: "Please enter your first name" }, { status: 400 });
+  }
+
+  if (firstName.length < 2) {
+    return data({ error: "Please enter a valid first name" }, { status: 400 });
+  }
+
+  if (!lastName || typeof lastName !== "string") {
+    return data({ error: "Please enter your last name" }, { status: 400 });
+  }
+
+  if (lastName.length < 2) {
+    return data({ error: "Please enter a valid last name" }, { status: 400 });
+  }
+
+  if (!country || typeof country !== "string") {
+    return data({ error: "Please enter your country" }, { status: 400 });
+  }
+
+  if (country !== "US") {
+    return data({ error: "Please enter a valid country" }, { status: 400 });
+  }
+
+  if (!address || typeof address !== "string") {
+    return data({ error: "Please enter your address" }, { status: 400 });
+  }
+
+  if (address2 && typeof address2 !== "string") {
+    return data(
+      { error: "Please enter a valid address line 2" },
+      { status: 400 }
+    );
+  }
+
+  if (!city || typeof city !== "string") {
+    return data({ error: "Please enter your city" }, { status: 400 });
+  }
+
+  if (!state || typeof state !== "string") {
+    return data({ error: "Please enter your state" }, { status: 400 });
+  }
+
+  if (state.length !== 2) {
+    return data({ error: "Please enter a valid state" }, { status: 400 });
+  }
+
+  if (!postal || typeof postal !== "string") {
+    return data({ error: "Please enter your postal code" }, { status: 400 });
+  }
+
+  if (!validator.isPostalCode(postal, "US")) {
+    return data({ error: "Please enter a valid postal code" }, { status: 400 });
+  }
+
+  if (!shippingId || typeof shippingId !== "string") {
+    return data({ error: "Please select a shipping option" }, { status: 400 });
+  }
+
+  const shippingOption = shippingOptions.find(
+    (option) => option.id === shippingId
+  );
+
+  if (!shippingOption) {
+    return data(
+      { error: "Please select a valid shipping option" },
+      { status: 400 }
+    );
+  }
+
+  if (!paymentMethod || typeof paymentMethod !== "string") {
+    return data({ error: "Please select a payment method" }, { status: 400 });
+  }
+
+  const paymentMethods = ["credit-card", "cash-app", "zelle"];
+
+  if (!paymentMethods.includes(paymentMethod)) {
+    return data(
+      { error: "Please select a valid payment method" },
+      { status: 400 }
+    );
+  }
+
+  const orderSubtotalFloat = result.reduce(
+    (total, item) => (item.product.price / 80) * 100 * item.quantity + total,
+    0
+  );
+
+  const orderDiscountFloat = result.reduce(
+    (total, item) =>
+      (item.product.price / 80) * 100 * 0.2 * item.quantity + total,
+    0
+  );
+
+  const orderShippingTotal = shippingOption.price;
+  const orderSubtotal = Math.round(orderSubtotalFloat * 100) / 100;
+  const orderDiscount = Math.round(orderDiscountFloat * 100) / 100;
+
+  const orderTotalFloat = orderSubtotal - orderDiscount + orderShippingTotal;
+  const orderTotal = Math.round(orderTotalFloat * 100) / 100;
+
+  const orderId = generateOrderId(10);
+
+  let orderStatus: OrderStatus = "AWAITING_PAYMENT";
+  let orderPaymentId: string | null = null;
+
+  if (paymentMethod === "credit-card") {
+    const cardDescriptor = formData.get("paymentDescriptor");
+    const cardValue = formData.get("paymentValue");
+
+    if (!cardDescriptor || typeof cardDescriptor !== "string") {
+      return data({ error: "Credit card data is invalid" }, { status: 400 });
+    }
+
+    if (!cardValue || typeof cardValue !== "string") {
+      return data({ error: "Credit card data is invalid" }, { status: 400 });
+    }
+
+    const cardTransaction = await authorizenet.createPayment(
+      orderTotal,
+      {
+        descriptor: cardDescriptor,
+        value: cardValue,
+      },
+      {
+        loginId: process.env.AUTHORIZENET_LOGIN_ID!,
+        transactionKey: process.env.AUTHORIZENET_TRANSACTION_KEY!,
+      }
+    );
+
+    if ("error" in cardTransaction) {
+      return data({ error: cardTransaction.error }, { status: 400 });
+    }
+
+    orderStatus = "PROCESSING";
+    orderPaymentId = cardTransaction.id;
+  }
+
+  const order = await prisma.order.create({
+    data: {
+      id: orderId,
+      status: orderStatus,
+      email,
+      firstName,
+      lastName,
+      country,
+      address,
+      address2,
+      city,
+      state,
+      postal,
+      subtotal: orderSubtotal,
+      discounts: orderDiscount,
+      shipping: orderShippingTotal,
+      total: orderTotal,
+      shippingMethod: shippingOption.id,
+      paymentMethod,
+      paymentId: orderPaymentId,
+    },
+  });
+
+  for (const item of result) {
+    await prisma.orderItem.create({
+      data: {
+        orderId: order.id,
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+        variants: {
+          createMany: {
+            data: item.variants.map((variant) => ({
+              optionId: variant.optionId,
+              variantId: variant.variantId,
+            })),
+          },
+        },
+      },
+    });
+  }
+
+  return data(
+    {
+      success: true,
+      order: {
+        id: order.id,
+        total: orderTotal,
+      },
+    },
+    {
+      headers: {
+        "Set-Cookie": await cartCookie.serialize(""),
+      },
+    }
+  );
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
   const cartId = await cartCookie.parse(request.headers.get("Cookie"));
@@ -180,7 +489,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
-export default function Checkout({ loaderData }: Route.ComponentProps) {
+export default function Checkout({
+  actionData,
+  loaderData,
+}: Route.ComponentProps) {
   const { cart, config } = loaderData;
 
   const address2Ref = useRef<HTMLInputElement>(null);
@@ -188,6 +500,9 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
   const cardExpiryRef = useRef<HTMLInputElement>(null);
   const cardCvvRef = useRef<HTMLInputElement>(null);
   const cardNameRef = useRef<HTMLInputElement>(null);
+
+  const nav = useNavigate();
+  const submit = useSubmit();
 
   const [email, setEmail] = useState("");
   const [subscribe, setSubscribe] = useState(true);
@@ -455,6 +770,7 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
     if (loading) return;
 
     setLoading(true);
+    setError(null);
 
     if (!email) {
       return onCheckoutError("Email is required.");
@@ -578,10 +894,24 @@ export default function Checkout({ loaderData }: Route.ComponentProps) {
       data["paymentValue"] = paymentData.opaqueData.dataValue;
     }
 
-    console.log(data);
+    submit(data, {
+      method: "post",
+    });
+  }
+
+  useEffect(() => {
+    if (!actionData) return;
+
+    if ("error" in actionData) {
+      return onCheckoutError(actionData.error);
+    }
 
     setLoading(false);
-  }
+
+    // TODO: Add pixel tracking for purchase
+
+    nav(`/order/${actionData.order.id}`);
+  }, [actionData]);
 
   return (
     <div className="px-4 pt-8">
@@ -1201,12 +1531,6 @@ type ShippingMethodProps = React.ComponentProps<"button"> & {
 
 type CardIconsProps = {
   brand?: string | null;
-};
-
-type PaymentMethodProps = {
-  active?: boolean;
-  onSelect?: () => void;
-  children: React.ReactNode;
 };
 
 type AddressAutocompleteInputProps = {

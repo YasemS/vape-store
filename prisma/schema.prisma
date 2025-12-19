@@ -117,3 +117,64 @@ model CartItemVariant {
   cartItem    CartItem @relation(fields: [cartItemId], references: [id])
   cartItemId String
 }
+
+enum OrderStatus {
+  CANCELLED
+  PENDING
+  AWAITING_PAYMENT
+  PROCESSING
+  AWAITING_FULFILLMENT
+  FULFILLED
+}
+
+model Order {
+  id String @id @default(uuid())
+  status OrderStatus @default(PENDING)
+
+  email         String
+  firstName     String
+  lastName      String
+  address       String
+  address2      String?
+  city          String
+  state         String
+  postal        String
+  country       String
+
+  subtotal      Float
+  discounts     Float
+  shipping      Float
+  total         Float
+
+  shippingMethod String
+
+  paymentMethod String
+  paymentId     String?
+
+  items OrderItem[]
+
+  created DateTime @default(now())
+}
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  price     Float
+  productId String
+
+  quantity Int @default(1)
+  variants OrderItemVariant[]
+
+  order   Order @relation(fields: [orderId], references: [id])
+  orderId String
+}
+
+model OrderItemVariant {
+  id String @id @default(uuid())
+
+  variantId String
+  optionId  String
+
+  orderItem    OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId  String
+}
