@@ -7,6 +7,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useNavigation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -15,6 +16,7 @@ import "~/app.css";
 
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
+import Loader from "~/components/Loader";
 import { DisclaimerAnnouncement } from "~/components/Announcement";
 
 import { CartContext } from "~/lib/cart";
@@ -78,10 +80,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App({ loaderData }: Route.ComponentProps) {
+  const loading = useNavigation().state === "loading";
+
   const [cart, setCart] = useState(loaderData.cart);
 
   return (
     <CartContext.Provider value={{ cart, setCart }}>
+      {loading && <Loader />}
+
       <DisclaimerAnnouncement />
 
       <Nav />

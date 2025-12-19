@@ -53,6 +53,20 @@ input[type="number"] {
   animation: menu-bar 150ms ease-in-out;
 }
 
+.animate-loader {
+  animation: loader 0.75s infinite alternate linear;
+}
+
+@keyframes loader {
+  from {
+    left: 0;
+  }
+
+  to {
+    left: 66.67%;
+  }
+}
+
 @keyframes product-bar {
   from {
     opacity: 0;
