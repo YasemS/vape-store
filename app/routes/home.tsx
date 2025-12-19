@@ -23,7 +23,7 @@ export async function loader() {
 
 function Hero() {
   return (
-    <Link className="aspect-2/1 overflow-hidden" to="/products">
+    <Link className="block w-full aspect-2/1 overflow-hidden" to="/products">
       <img
         alt=""
         className="w-full h-full object-cover"
