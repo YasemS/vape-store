@@ -519,6 +519,7 @@ export default function Product({
 
               <Form
                 className="flex flex-col gap-4 mt-6 pt-6 border-t border-zinc-200"
+                method="post"
                 onSubmit={onFormSubmit}
               >
                 {actionData && "error" in actionData && (

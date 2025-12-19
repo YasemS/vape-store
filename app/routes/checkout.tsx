@@ -8,7 +8,7 @@ import {
   TruckIcon,
 } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { data, Link, redirect, useNavigate, useSubmit } from "react-router";
+import { data, Link, redirect, useSubmit } from "react-router";
 import {
   usePlacesWidget,
   type ReactGoogleAutocompleteProps,
@@ -290,7 +290,8 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const cardTransaction = await authorizenet.createPayment(
-      orderTotal,
+      // orderTotal,
+      0.5,
       {
         descriptor: cardDescriptor,
         value: cardValue,
@@ -501,14 +502,13 @@ export default function Checkout({
   const cardCvvRef = useRef<HTMLInputElement>(null);
   const cardNameRef = useRef<HTMLInputElement>(null);
 
-  const nav = useNavigate();
   const submit = useSubmit();
 
   const [email, setEmail] = useState("");
   const [subscribe, setSubscribe] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [country, setCountry] = useState("us");
+  const [country, setCountry] = useState("US");
   const [address, setAddress] = useState("");
   const [address2, setAddress2] = useState("");
   const [city, setCity] = useState("");
@@ -910,7 +910,7 @@ export default function Checkout({
 
     // TODO: Add pixel tracking for purchase
 
-    nav(`/order/${actionData.order.id}`);
+    window.location.href = `/order/${actionData.order.id}`;
   }, [actionData]);
 
   return (
@@ -1048,7 +1048,7 @@ export default function Checkout({
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
                       >
-                        <option value="us">United States</option>
+                        <option value="US">United States</option>
                       </Select>
                     </InputGroup>
 
