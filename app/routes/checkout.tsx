@@ -290,8 +290,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const cardTransaction = await authorizenet.createPayment(
-      // orderTotal,
-      0.5,
+      orderTotal,
       {
         descriptor: cardDescriptor,
         value: cardValue,
