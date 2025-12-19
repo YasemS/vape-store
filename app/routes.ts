@@ -7,4 +7,5 @@ export default [
   route("cart", "routes/cart.tsx"),
   route("checkout", "routes/checkout.tsx"),
   route("order/:id", "routes/order.$id.tsx"),
+  route("track", "routes/track.tsx"),
 ] satisfies RouteConfig;
