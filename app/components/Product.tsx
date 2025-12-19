@@ -80,7 +80,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Link className="flex flex-col group" to={`/product/${product.slug}`}>
-      <div className="aspect-square p-4 bg-zinc-100 border border-zinc-100 rounded transition-colors hover:border-zinc-200 active:border-zinc-400">
+      <div className="w-full aspect-square p-4 bg-zinc-100 border border-zinc-100 rounded transition-colors hover:border-zinc-200 active:border-zinc-400">
         <img
           alt={product.name}
           className="w-full h-full object-contain transition"
