@@ -19,8 +19,9 @@ import Footer from "~/components/Footer";
 import Loader from "~/components/Loader";
 import { DisclaimerAnnouncement } from "~/components/Announcement";
 
-import fbq from "./lib/tracking/fbq.client";
-import gtag from "./lib/tracking/gtag.client";
+import fbq from "~/lib/tracking/fbq.client";
+import gtag from "~/lib/tracking/gtag.client";
+import datafast from "~/lib/tracking/datafast.client";
 import { CartContext } from "~/lib/cart";
 import { cartCookie, createCart, getCart } from "~/lib/cart.server";
 
@@ -46,6 +47,10 @@ export async function loader({ request }: Route.LoaderArgs) {
           analytics: {
             id: process.env.GOOGLE_ANALYTICS_ID || "",
           },
+        },
+        datafast: {
+          id: process.env.DATAFAST_WEBSITE_ID || "",
+          domain: process.env.DATAFAST_DOMAIN || "",
         },
       },
     },
@@ -118,6 +123,12 @@ export default function App({ loaderData }: Route.ComponentProps) {
   const [cart, setCart] = useState(loaderData.cart);
 
   useEffect(() => {
+    datafast.init({
+      allowLocalhost: true,
+      websiteId: loaderData.config.datafast.id,
+      domain: loaderData.config.datafast.domain,
+    });
+
     fbq.init(loaderData.config.meta.pixel.id);
     gtag.init(loaderData.config.google.analytics.id);
   }, []);

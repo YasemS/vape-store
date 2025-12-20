@@ -41,6 +41,8 @@ import acceptjs from "~/lib/acceptjs.client";
 import authorizenet from "~/lib/authorizenet.server";
 import fbq from "~/lib/tracking/fbq.client";
 import gtag from "~/lib/tracking/gtag.client";
+import datafast from "~/lib/tracking/datafast.client";
+import datafastServer from "~/lib/tracking/datafast.server";
 import { resend, template as emailTemplate } from "~/lib/email.server";
 import { cartCookie, getCart } from "~/lib/cart.server";
 
@@ -80,7 +82,7 @@ function generateOrderId(length: number) {
 
 export const meta: Route.MetaFunction = () => [
   {
-    title: "Cart - AYVapes",
+    title: "Checkout - AYVapes",
   },
   {
     name: "robots",
@@ -424,6 +426,24 @@ export async function action({ request }: Route.ActionArgs) {
     } - ${orderId} - AYVapes`,
     ...template,
   });
+
+  const datafastVisitorId =
+    request.headers
+      .get("Cookie")
+      ?.split(";")
+      .find((c) => c.trim().startsWith("datafast_visitor_id="))
+      ?.split("=")[1] || "";
+
+  if (datafastVisitorId) {
+    await datafastServer.payment({
+      orderId: order.id,
+      email: order.email,
+      name: order.firstName + " " + order.lastName,
+      total: order.total,
+      datafastVisitorId: datafastVisitorId,
+      datafastApiKey: process.env.DATAFAST_API_KEY || "",
+    });
+  }
 
   return data(
     {
@@ -814,6 +834,18 @@ export default function Checkout({
     }
   }
 
+  function onShippingSelect(newShippingId: string) {
+    if (newShippingId === shippingId) return;
+
+    setShippingId(newShippingId);
+
+    datafast.track("add_shipping_info", {
+      currency: "USD",
+      value: cartTotal,
+      shipping_method: shippingId,
+    });
+  }
+
   function onPaymentSelect(newPaymentMethod: string) {
     if (newPaymentMethod === paymentMethod) return;
 
@@ -844,6 +876,12 @@ export default function Checkout({
         currency: "USD",
       });
     }
+
+    datafast.track("add_payment_info", {
+      currency: "USD",
+      value: cartTotal,
+      payment_method: paymentMethod,
+    });
 
     gtag.track("add_payment_info", {
       currency: "USD",
@@ -999,12 +1037,22 @@ export default function Checkout({
       data["paymentValue"] = paymentData.opaqueData.dataValue;
     }
 
+    datafast.track("checkout", {
+      currency: "USD",
+      value: cartTotal,
+    });
+
     submit(data, {
       method: "post",
     });
   }
 
   useEffect(() => {
+    datafast.track("begin_checkout", {
+      currency: "USD",
+      value: cartTotal,
+    });
+
     fbq.track("InitiateCheckout", {
       contents: cart.items.map((item) => ({
         id: item.slug,
@@ -1029,6 +1077,63 @@ export default function Checkout({
       })),
     });
   }, []);
+
+  useEffect(() => {
+    if (!email) return;
+    if (!validator.isEmail(email)) return;
+
+    const w = window as any;
+    w.tracking_events = w.tracking_events || [];
+    if (w.tracking_events.includes("add_contact_info")) return;
+
+    const timeout = setTimeout(() => {
+      datafast.track("add_contact_info", {
+        currency: "USD",
+        value: cartTotal,
+        email,
+      });
+
+      w.tracking_events.push("add_contact_info");
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [email, cartTotal]);
+
+  useEffect(() => {
+    if (
+      !firstName ||
+      !lastName ||
+      !address ||
+      !city ||
+      !state ||
+      !postal ||
+      !country
+    ) {
+      return;
+    }
+    if (firstName.length < 2 || lastName.length < 2) return;
+
+    const w = window as any;
+    w.tracking_events = w.tracking_events || [];
+    if (w.tracking_events.includes("add_address_info")) return;
+
+    const timeout = setTimeout(() => {
+      datafast.track("add_address_info", {
+        currency: "USD",
+        value: cartTotal,
+        firstName,
+        lastName,
+        city,
+        state,
+        postal,
+        country,
+      });
+
+      w.tracking_events.push("add_address_info");
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [firstName, lastName, city, state, postal, country, cartTotal]);
 
   useEffect(() => {
     if (!actionData) return;
@@ -1320,7 +1425,7 @@ export default function Checkout({
                     active={shippingOption.id === shippingId}
                     option={shippingOption}
                     total={cartSubtotal - cartDiscount}
-                    onClick={() => setShippingId(shippingOption.id)}
+                    onClick={() => onShippingSelect(shippingOption.id)}
                   />
                 ))}
               </div>

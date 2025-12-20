@@ -37,6 +37,7 @@ import cn from "~/lib/cn";
 import format from "~/lib/format";
 import gtag from "~/lib/tracking/gtag.client";
 import fbq from "~/lib/tracking/fbq.client";
+import datafast from "~/lib/tracking/datafast.client";
 import { getProductBySlug, getSimilarProducts } from "~/lib/products.server";
 
 import type { Route } from "./+types/product.$slug";
@@ -198,20 +199,32 @@ export default function Product({
   const [showCartPopup, setShowCartPopup] = useState(false);
 
   function onVariantChange(variantId: string, optionId: string) {
+    const variant = product.variants.find((v) => v.id === variantId);
+    if (!variant) return;
+
+    const option = variant.options.find((o) => o.id === optionId);
+    if (!option) return;
+
     setVariants((prev) => ({
       ...prev,
       [variantId]: optionId,
     }));
 
+    datafast.track("customize_item", {
+      currency: "USD",
+      value: product.price,
+      product_name: product.name,
+      product_id: product.slug,
+      product_variant: variant.name,
+      product_variant_option: option.name,
+    });
+
     fbq.track("CustomizeProduct");
 
-    const variant = product.variants.find((v) => v.id === variantId);
-    if (!variant) return;
-
-    const option = variant.options.find((o) => o.id === optionId);
-    if (!option || !option.imageId) return;
+    if (!option.imageId) return;
 
     const optionImage = product.images.find((i) => i.id === option.imageId);
+
     if (!optionImage) return;
 
     setProductImage(optionImage);
@@ -349,6 +362,13 @@ export default function Product({
       setShowCartPopup(true);
       setCart(actionData.cart);
 
+      datafast.track("add_to_cart", {
+        currency: "USD",
+        value: product.price,
+        product_name: product.name,
+        product_id: product.slug,
+      });
+
       fbq.track("AddToCart", {
         contents: [
           {
@@ -380,6 +400,13 @@ export default function Product({
   }, [actionData]);
 
   useEffect(() => {
+    datafast.track("view_item", {
+      currency: "USD",
+      value: product.price,
+      product_name: product.name,
+      product_id: product.slug,
+    });
+
     fbq.track("ViewContent", {
       content_ids: [product.slug],
       content_type: "product",
