@@ -92,6 +92,9 @@ export async function getProductBySlug(productSlug: string) {
               name: true,
               imageId: true,
             },
+            orderBy: {
+              name: "asc",
+            },
           },
         },
         orderBy: {
