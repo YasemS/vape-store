@@ -550,6 +550,11 @@ export async function loader({ request }: Route.LoaderArgs) {
         apiLoginId: process.env.AUTHORIZENET_LOGIN_ID || "",
         clientKey: process.env.AUTHORIZENET_CLIENT_KEY || "",
       },
+      meta: {
+        pixel: {
+          id: process.env.META_PIXEL_ID || "",
+        },
+      },
     },
   };
 }
@@ -1021,6 +1026,16 @@ export default function Checkout({
     if ("error" in actionData) {
       return onCheckoutError(actionData.error);
     }
+
+    fbq.init(loaderData.config.meta.pixel.id || "", {
+      em: email,
+      fn: firstName,
+      ln: lastName,
+      ct: city,
+      st: state,
+      zp: postal,
+      country,
+    });
 
     fbq.track("Purchase", {
       contents: cart.items.map((item) => ({
