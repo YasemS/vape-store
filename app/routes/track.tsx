@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { data, Form, redirect } from "react-router";
 import { AlertCircleIcon, MoveRightIcon } from "lucide-react";
 
@@ -14,7 +15,7 @@ import type { Route } from "./+types/track";
 export async function action({ request }: Route.LoaderArgs) {
   const formData = await request.formData();
 
-  const orderId = formData.get("orderId");
+  const orderId = formData.get("order-id");
 
   if (!orderId || typeof orderId !== "string") {
     return data({ error: "Order ID is required" }, { status: 400 });
@@ -35,6 +36,12 @@ export async function action({ request }: Route.LoaderArgs) {
 }
 
 export default function Track({ actionData }: Route.ComponentProps) {
+  const [orderId, setOrderId] = useState("");
+
+  function onOrderIdChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setOrderId(e.target.value.toUpperCase());
+  }
+
   return (
     <div className="px-4 py-20">
       <Container>
@@ -56,7 +63,12 @@ export default function Track({ actionData }: Route.ComponentProps) {
 
             <InputGroup>
               <Label>Order Number</Label>
-              <Input type="text" name="orderId" />
+              <Input
+                type="text"
+                name="order-id"
+                value={orderId}
+                onChange={onOrderIdChange}
+              />
             </InputGroup>
 
             <Button type="submit">
