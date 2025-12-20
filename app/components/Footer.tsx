@@ -40,7 +40,7 @@ export default function Footer() {
 
             <FooterLink to="/contact">Contact Us</FooterLink>
 
-            <FooterLink to="/sitemap.xml">Sitemap</FooterLink>
+            {/* <FooterLink to="/sitemap.xml">Sitemap</FooterLink> */}
           </div>
 
           <div className="flex flex-col items-start pt-8 md:pt-0">
