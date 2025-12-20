@@ -665,7 +665,7 @@ export default function Product({
 
               <div className="mt-6 pt-6 border-t border-zinc-200">
                 <h2 className="text-xl font-semibold">
-                  About the Geek Bar Pulse X
+                  About the {product.name}
                 </h2>
 
                 <p className="mt-1 text-sm">{product.description}</p>
