@@ -52,7 +52,7 @@ export default function Products({ loaderData }: Route.ComponentProps) {
             All Products ({products.length})
           </h1>
 
-          <div className="relative" ref={sortRef}>
+          {/* <div className="relative" ref={sortRef}>
             <Button
               className={cn(
                 "px-4 h-10 text-zinc-500 text-sm font-medium",
@@ -81,7 +81,7 @@ export default function Products({ loaderData }: Route.ComponentProps) {
                 </button>
               </Dropdown>
             )}
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-4">
