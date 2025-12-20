@@ -62,7 +62,7 @@ export default function Nav() {
             <div className="hidden items-center gap-8 sm:flex">
               <Link to="/products">Products</Link>
               <Link to="/track">Track Order</Link>
-              <Link to="/track">Contact</Link>
+              <Link to="/contact">Contact</Link>
             </div>
 
             <div className="flex items-center justify-end gap-4 min-w-32 w-32 max-w-32">
