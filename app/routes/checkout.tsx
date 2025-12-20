@@ -39,6 +39,7 @@ import format from "~/lib/format";
 import prisma from "~/lib/prisma.server";
 import acceptjs from "~/lib/acceptjs.client";
 import authorizenet from "~/lib/authorizenet.server";
+import { resend, template as emailTemplate } from "~/lib/email.server";
 import { cartCookie, getCart } from "~/lib/cart.server";
 
 import type { Route } from "./+types/checkout";
@@ -350,6 +351,67 @@ export async function action({ request }: Route.ActionArgs) {
       },
     });
   }
+
+  const emailItems = result.map((item) => {
+    const variants = item.variants
+      .map((v) => {
+        const variant = item.product.variants.find(
+          (variant) => variant.id === v.variantId
+        );
+
+        if (!variant) {
+          return "";
+        }
+
+        const option = variant.options.find(
+          (option) => option.id === v.optionId
+        );
+
+        if (!option) {
+          return "";
+        }
+
+        return option.name;
+      })
+      .join(", ");
+
+    return (
+      item.quantity +
+      " x " +
+      item.product.name +
+      (variants ? " (" + variants + ")" : "")
+    );
+  });
+
+  const emailAddress = `${
+    order.address + (order.address2 ? ", " + order.address2 : "")
+  }, ${order.city}, ${order.state} ${order.postal}`;
+
+  const template =
+    orderStatus === "AWAITING_PAYMENT"
+      ? emailTemplate.order.pending({
+          id: order.id,
+          name: firstName,
+          address: emailAddress,
+          payment: format.capitalize(paymentMethod.split("-").join(" ")),
+          items: emailItems,
+        })
+      : emailTemplate.order.confirmation({
+          id: order.id,
+          name: firstName,
+          address: emailAddress,
+          items: emailItems,
+        });
+
+  await resend.emails.send({
+    from: "AYVapes <ayvapes@ayco.shop>",
+    to: [email],
+    replyTo: "ayvapes@ayco.shop",
+    subject: `Order ${
+      orderStatus === "PROCESSING" ? "Confirmation" : "Pending"
+    } - ${orderId} - AYVapes`,
+    ...template,
+  });
 
   return data(
     {
