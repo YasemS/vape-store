@@ -9,4 +9,5 @@ export default [
   route("order/:id", "routes/order.$id.tsx"),
   route("track", "routes/track.tsx"),
   route("contact", "routes/contact.tsx"),
+  route("legal/:page", "routes/legal.$page.tsx"),
 ] satisfies RouteConfig;

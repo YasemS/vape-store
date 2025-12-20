@@ -22,6 +22,56 @@ input[type="number"] {
   appearance: textfield; /* Standard property, works in modern browsers */
 }
 
+.legal h1 {
+  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: bold;
+}
+
+.legal h2 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.legal h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.legal a {
+  color: var(--color-orange-500);
+  font-weight: 500;
+}
+
+.legal a:hover {
+  text-decoration-line: underline;
+}
+
+.legal p {
+  margin-top: 2rem;
+  font-size: 0.875rem;
+}
+
+.legal ul {
+  margin-block: 1rem;
+  font-size: 0.875rem;
+  list-style-type: disc;
+  list-style-position: inside;
+}
+
+.legal li {
+  margin-bottom: 0.25rem;
+}
+
+.legal li:last-child {
+  margin-bottom: 0;
+}
+
 .scroll-hidden::-webkit-scrollbar {
   display: none;
   width: 0;
