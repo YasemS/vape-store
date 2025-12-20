@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   data,
   isRouteErrorResponse,
@@ -19,6 +19,8 @@ import Footer from "~/components/Footer";
 import Loader from "~/components/Loader";
 import { DisclaimerAnnouncement } from "~/components/Announcement";
 
+import fbq from "./lib/tracking/fbq.client";
+import gtag from "./lib/tracking/gtag.client";
 import { CartContext } from "~/lib/cart";
 import { cartCookie, createCart, getCart } from "~/lib/cart.server";
 
@@ -34,6 +36,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   return data(
     {
       cart,
+      config: {
+        meta: {
+          pixel: {
+            id: process.env.META_PIXEL_ID || "",
+          },
+        },
+        google: {
+          analytics: {
+            id: process.env.GOOGLE_ANALYTICS_ID || "",
+          },
+        },
+      },
     },
     {
       headers: {
@@ -83,6 +97,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
   const loading = useNavigation().state === "loading";
 
   const [cart, setCart] = useState(loaderData.cart);
+
+  useEffect(() => {
+    fbq.init(loaderData.config.meta.pixel.id);
+    gtag.init(loaderData.config.google.analytics.id);
+  }, []);
 
   return (
     <CartContext.Provider value={{ cart, setCart }}>

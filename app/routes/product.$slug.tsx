@@ -35,6 +35,8 @@ import TimeAgo from "~/components/TimeAgo";
 
 import cn from "~/lib/cn";
 import format from "~/lib/format";
+import gtag from "~/lib/tracking/gtag.client";
+import fbq from "~/lib/tracking/fbq.client";
 import { getProductBySlug, getSimilarProducts } from "~/lib/products.server";
 
 import type { Route } from "./+types/product.$slug";
@@ -195,6 +197,8 @@ export default function Product({
       [variantId]: optionId,
     }));
 
+    fbq.track("CustomizeProduct");
+
     const variant = product.variants.find((v) => v.id === variantId);
     if (!variant) return;
 
@@ -338,8 +342,60 @@ export default function Product({
     if ("cart" in actionData) {
       setShowCartPopup(true);
       setCart(actionData.cart);
+
+      fbq.track("AddToCart", {
+        contents: [
+          {
+            id: product.slug,
+            quantity: quantity,
+            item_price: product.price,
+          },
+        ],
+        content_ids: [product.slug],
+        content_type: "product", // Type of content (product, product_group, etc.)
+        value: product.price, // Total value of added items (sum of all quantities * prices)
+        currency: "USD", // Currency code (ISO 4217)
+      });
+
+      gtag.track("add_to_cart", {
+        currency: "USD",
+        value: product.price,
+        items: [
+          {
+            item_id: product.slug,
+            item_name: product.name,
+            item_brand: product.brand.name,
+            price: product.price,
+            quantity: quantity,
+          },
+        ],
+      });
     }
   }, [actionData]);
+
+  useEffect(() => {
+    fbq.track("ViewContent", {
+      content_ids: [product.slug],
+      content_type: "product",
+      contents: [{ id: product.slug, quantity, item_price: product.price }],
+      currency: "USD",
+      value: product.price,
+    });
+
+    gtag.track("view_item", {
+      currency: "USD",
+      value: product.price,
+      items: [
+        {
+          item_id: product.slug,
+          item_name: product.name,
+          item_brand: product.brand.name,
+          price: product.price,
+          quantity,
+        },
+      ],
+    });
+  }, [product]);
 
   return (
     <>

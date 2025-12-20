@@ -39,6 +39,8 @@ import format from "~/lib/format";
 import prisma from "~/lib/prisma.server";
 import acceptjs from "~/lib/acceptjs.client";
 import authorizenet from "~/lib/authorizenet.server";
+import fbq from "~/lib/tracking/fbq.client";
+import gtag from "~/lib/tracking/gtag.client";
 import { resend, template as emailTemplate } from "~/lib/email.server";
 import { cartCookie, getCart } from "~/lib/cart.server";
 
@@ -532,6 +534,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       ...item,
       name: product.name,
       price: product.price,
+      slug: product.slug,
       image,
       variants,
     });
@@ -813,6 +816,32 @@ export default function Checkout({
         cardNumberRef.current?.focus();
       }, 100);
     }
+
+    if (!paymentMethod) {
+      fbq.track("AddPaymentInfo", {
+        contents: cart.items.map((item) => ({
+          id: item.slug,
+          quantity: item.quantity,
+          item_price: item.price,
+        })),
+        content_ids: cart.items.map((item) => item.slug),
+        value: cartTotal,
+        currency: "USD",
+      });
+    }
+
+    gtag.track("add_payment_info", {
+      currency: "USD",
+      value: cartTotal,
+      payment_type: paymentMethod,
+      items: cart.items.map((item) => ({
+        item_id: item.slug,
+        item_name: item.name,
+        item_variant: item.variants.length > 0 ? item.variants[0].name : null,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    });
   }
 
   function onCheckoutError(newError: string) {
@@ -961,15 +990,62 @@ export default function Checkout({
   }
 
   useEffect(() => {
+    fbq.track("InitiateCheckout", {
+      contents: cart.items.map((item) => ({
+        id: item.slug,
+        quantity: item.quantity,
+        item_price: item.price,
+      })),
+      content_ids: cart.items.map((item) => item.slug),
+      content_type: "product",
+      value: cartTotal,
+      currency: "USD",
+    });
+
+    gtag.track("begin_checkout", {
+      currency: "USD",
+      value: cartTotal,
+      items: cart.items.map((item) => ({
+        item_id: item.slug,
+        item_name: item.name,
+        item_variant: item.variants.length > 0 ? item.variants[0].name : null,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    });
+  }, []);
+
+  useEffect(() => {
     if (!actionData) return;
 
     if ("error" in actionData) {
       return onCheckoutError(actionData.error);
     }
 
-    setLoading(false);
+    fbq.track("Purchase", {
+      contents: cart.items.map((item) => ({
+        id: item.slug,
+        quantity: item.quantity,
+        item_price: item.price,
+      })),
+      content_ids: cart.items.map((item) => item.slug),
+      content_type: "product",
+      value: cartTotal,
+      currency: "USD",
+    });
 
-    // TODO: Add pixel tracking for purchase
+    gtag.track("purchase", {
+      transaction_id: actionData.order.id,
+      currency: "USD",
+      value: actionData.order.total,
+      items: cart.items.map((item) => ({
+        item_id: item.slug,
+        item_name: item.name,
+        item_variant: item.variants.length > 0 ? item.variants[0].name : null,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    });
 
     window.location.href = `/order/${actionData.order.id}`;
   }, [actionData]);
