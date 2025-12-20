@@ -400,6 +400,8 @@ export default function Product({
   }, [actionData]);
 
   useEffect(() => {
+    setProductImage(product.images[0]);
+
     datafast.track("view_item", {
       currency: "USD",
       value: product.price,
