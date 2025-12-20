@@ -30,6 +30,12 @@ import prisma from "~/lib/prisma.server";
 import type { Route } from "./+types/order.$id";
 import type { OrderStatus as OrderStatusEnum } from "generated/prisma/enums";
 
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Order - AYVapes",
+  },
+];
+
 export async function loader({ params }: Route.LoaderArgs) {
   const order = await prisma.order.findUnique({
     include: {

@@ -1,7 +1,14 @@
+import { redirect } from "react-router";
+
 import Container from "~/components/Container";
 
 import type { Route } from "./+types/legal.$page";
-import { redirect } from "react-router";
+
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Legal - AYVapes",
+  },
+];
 
 export async function loader({ params }: Route.LoaderArgs) {
   const { page } = params;

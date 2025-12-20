@@ -20,6 +20,12 @@ import type { Route } from "./+types/cart";
 import format from "~/lib/format";
 import { useCart } from "~/lib/cart";
 
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Cart - AYVapes",
+  },
+];
+
 export async function loader({ request }: Route.LoaderArgs) {
   const cartId = await cartCookie.parse(request.headers.get("Cookie"));
 

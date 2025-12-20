@@ -12,6 +12,12 @@ import prisma from "~/lib/prisma.server";
 
 import type { Route } from "./+types/track";
 
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Track Your Order - AYVapes",
+  },
+];
+
 export async function action({ request }: Route.LoaderArgs) {
   const formData = await request.formData();
 

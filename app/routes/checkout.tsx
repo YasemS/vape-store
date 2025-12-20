@@ -78,6 +78,16 @@ function generateOrderId(length: number) {
   return result;
 }
 
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Cart - AYVapes",
+  },
+  {
+    name: "robots",
+    content: "noindex",
+  },
+];
+
 export async function action({ request }: Route.ActionArgs) {
   const cartId = await cartCookie.parse(request.headers.get("Cookie"));
 

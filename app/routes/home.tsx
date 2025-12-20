@@ -13,6 +13,12 @@ import { ProductCard, ProductGrid } from "~/components/Product";
 
 import type { Route } from "./+types/home";
 
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "AYVapes",
+  },
+];
+
 export async function loader() {
   const products = await getProducts({ take: 8 });
 

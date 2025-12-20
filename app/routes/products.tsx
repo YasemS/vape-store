@@ -12,6 +12,12 @@ import { getProducts } from "~/lib/products.server";
 
 import type { Route } from "./+types/products";
 
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Products - AYVapes",
+  },
+];
+
 export async function loader() {
   const products = await getProducts();
 

@@ -3,6 +3,14 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 
 import Container from "~/components/Container";
 
+import type { Route } from "./+types/contact";
+
+export const meta: Route.MetaFunction = () => [
+  {
+    title: "Contact - AYVapes",
+  },
+];
+
 export default function Contact() {
   return (
     <div className="px-4 py-20">

@@ -49,6 +49,12 @@ import {
 import prisma from "~/lib/prisma.server";
 import { useCart } from "~/lib/cart";
 
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  {
+    title: loaderData.product.name + " - AYVapes",
+  },
+];
+
 export async function loader({ params }: Route.LoaderArgs) {
   const product = await getProductBySlug(params.slug);
 
