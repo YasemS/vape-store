@@ -57,6 +57,7 @@ export async function getSimilarProducts(productId: string) {
         take: 1,
       },
     },
+    take: 4,
   });
 
   return products;
