@@ -816,38 +816,55 @@ export default function Product({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 mt-4 sm:grid-cols-2 sm:gap-2 lg:grid-cols-3">
-                  {product.reviews.map((review) => (
-                    <div
-                      className="py-4 border-b border-zinc-200 rounded first:pt-0 sm:border sm:p-3 sm:first:pt-3"
-                      key={review.id}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center min-w-10 w-10 h-10 bg-orange-500 rounded-full text-white font-semibold">
-                          <span>{review.author.charAt(0).toUpperCase()}</span>
+                <div className="columns-1 mt-4 sm:columns-2 sm:gap-2 lg:columns-3">
+                  {product.reviews.map((review, index) => {
+                    const avatarColors = [
+                      "bg-orange-500",
+                      "bg-green-500",
+                      "bg-blue-500",
+                      "bg-red-500",
+                      "bg-yellow-500",
+                    ];
+
+                    const avatarColor =
+                      avatarColors[Math.floor(index % avatarColors.length)];
+
+                    return (
+                      <div
+                        className="break-inside-avoid py-4 border-b border-zinc-200 rounded first:pt-0 sm:mb-2 sm:p-3 sm:first:pt-3 sm:border"
+                        key={review.id}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={cn(
+                              "flex items-center justify-center min-w-10 w-10 h-10 rounded-full text-white font-semibold select-none",
+                              avatarColor
+                            )}
+                          >
+                            <span>{review.author.charAt(0).toUpperCase()}</span>
+                          </div>
+
+                          <div>
+                            <p className="font-semibold leading-4">
+                              {review.author}
+                            </p>
+                            <p className="mt-0.5 text-xs text-zinc-500 leading-3">
+                              <ClientOnly
+                                fallback={review.created.toLocaleDateString(
+                                  "en-US"
+                                )}
+                              >
+                                {() => <TimeAgo date={review.created} />}
+                              </ClientOnly>
+                            </p>
+                          </div>
                         </div>
 
-                        <div>
-                          <p className="font-semibold leading-4">
-                            {review.author}
-                          </p>
-                          <p className="mt-0.5 text-xs text-zinc-500 leading-3">
-                            <ClientOnly
-                              fallback={review.created.toLocaleDateString(
-                                "en-US"
-                              )}
-                            >
-                              {() => <TimeAgo date={review.created} />}
-                            </ClientOnly>
-                          </p>
-                        </div>
-                      </div>
+                        <p className="mt-2 text-sm leading-4.5">
+                          {review.content}
+                        </p>
 
-                      <p className="mt-2 text-sm leading-4.5">
-                        {review.content}
-                      </p>
-
-                      {/* <div className="flex flex-wrap gap-2 mt-2">
+                        {/* <div className="flex flex-wrap gap-2 mt-2">
                         <button className="min-w-16 w-16 h-16 rounded overflow-hidden">
                           <img
                             className="w-full h-full object-cover"
@@ -857,15 +874,16 @@ export default function Product({
                         </button>
                       </div> */}
 
-                      <div className="flex items-center justify-between mt-2">
-                        <ProductStars rating={review.rating} />
+                        <div className="flex items-center justify-between mt-2">
+                          <ProductStars rating={review.rating} />
 
-                        <p className="text-sm font-semibold leading-3.5">
-                          Rated {review.rating.toFixed(1)}
-                        </p>
+                          <p className="text-sm font-semibold leading-3.5">
+                            Rated {review.rating.toFixed(1)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </>
