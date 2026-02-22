@@ -92,7 +92,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   if (quantityInt > 99) {
     return data(
       { error: "Quantity cannot be greater than 99" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -106,18 +106,18 @@ export async function action({ params, request }: Route.ActionArgs) {
     if (!selectedOptionId) {
       return data(
         { error: `${variant.name} option is required` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const selectedOption = variant.options.find(
-      (option) => option.id === selectedOptionId
+      (option) => option.id === selectedOptionId,
     );
 
     if (!selectedOption) {
       return data(
         { error: `${variant.name} option is invalid` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -439,7 +439,7 @@ export default function Product({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4 xl:gap-8">
             <div>
               <div className="sticky top-4">
-                <div className="aspect-square p-8 bg-zinc-100 md:rounded-lg">
+                <div className="relative aspect-square p-8 bg-zinc-100 md:rounded-lg">
                   <img
                     alt={product.name}
                     className="w-full h-full object-contain"
@@ -451,8 +451,10 @@ export default function Product({
                   {product.images.map((image, index) => (
                     <button
                       className={cn(
-                        "min-w-16 w-16 h-16 p-2 bg-zinc-100 border border-zinc-100 rounded transition cursor-pointer hover:border-zinc-200 active:border-zinc-400",
-                        image.id === productImage.id && "border-zinc-400"
+                        "min-w-16 w-16 h-16 p-2 bg-zinc-100 border border-zinc-100 rounded transition cursor-pointer",
+                        image.id === productImage.id
+                          ? "border-zinc-400"
+                          : "hover:border-zinc-200 active:border-zinc-400",
                       )}
                       key={image.id}
                       type="button"
@@ -838,7 +840,7 @@ export default function Product({
                           <div
                             className={cn(
                               "flex items-center justify-center min-w-10 w-10 h-10 rounded-full text-white font-semibold select-none",
-                              avatarColor
+                              avatarColor,
                             )}
                           >
                             <span>{review.author.charAt(0).toUpperCase()}</span>
@@ -851,7 +853,7 @@ export default function Product({
                             <p className="mt-0.5 text-xs text-zinc-500 leading-3">
                               <ClientOnly
                                 fallback={review.created.toLocaleDateString(
-                                  "en-US"
+                                  "en-US",
                                 )}
                               >
                                 {() => <TimeAgo date={review.created} />}
@@ -976,7 +978,7 @@ export default function Product({
                     {Object.keys(variants).length > 0 && ", "}
                     {Object.keys(variants).map((variantId, index) => {
                       const variant = product.variants.find(
-                        (variant) => variant.id === variantId
+                        (variant) => variant.id === variantId,
                       );
 
                       if (!variant) {
@@ -986,7 +988,7 @@ export default function Product({
                       const optionId = variants[variantId];
 
                       const option = variant.options.find(
-                        (option) => option.id === optionId
+                        (option) => option.id === optionId,
                       );
 
                       if (!option) {
